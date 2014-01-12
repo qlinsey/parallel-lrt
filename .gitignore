@@ -1,0 +1,14 @@
+/trunk
+/branches
+/.svn
+/doc
+/TKDE
+
+*/**/.svn/*
+
+src/regression/*
+src/experiment/*
+
+*.zip
+*.dat
+*.sh
