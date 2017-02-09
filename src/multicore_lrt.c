@@ -21,6 +21,8 @@ typedef struct thread_param {
              end; 
    prefix_sums *p;               // prefix sums
    int kbest;                    // kbest
+   clock_t duration;             // duration
+   int idx;                      // thread number
 } thread_param;
    
 
@@ -47,6 +49,7 @@ static void *work_function(void *arg)
 {
    // get info from parameters of the thread
    thread_param *param = (thread_param *) arg;
+   arg->duration[arg->idx] = clock();
    prefix_sums *p = param->p;
    grid *g = p->gridref; 
    int kbest=param->kbest;
@@ -155,6 +158,8 @@ static void *work_function(void *arg)
       } 
    } 
 
+   arg->duration[arg->idx] = arg->duration[arg->idx] - clock();
+
    return r;
 }
 
@@ -196,6 +201,7 @@ rectangle *multicore_lrt(grid *g,int kbest)
    for (i=0;i<num_threads;i++){
 
        // set parameters  for threads
+       param[i].idx = i; 
        param[i].start = start;
        if (i == num_threads-1) {
           param[i].end = size;
@@ -221,6 +227,9 @@ rectangle *multicore_lrt(grid *g,int kbest)
 
        // copy result 
        memcpy(r+i*kbest,thread_r,sizeof(rectangle)*kbest);  
+       
+       // duration
+       printf("Runtime of thread (%d) = %f\n", param[i].duration / CLOCKS_PER_SECOND); 
    }
 
    // sort all result and return it
