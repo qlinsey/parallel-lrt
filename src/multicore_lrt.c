@@ -22,6 +22,7 @@ typedef struct thread_param {
    prefix_sums *p;               // prefix sums
    int kbest;                    // kbest
    clock_t duration;            //duration
+   long long ctr;               //counter 
 } thread_param;
    
 
@@ -72,6 +73,7 @@ static void *work_function(void *arg)
    rectangle *r = (rectangle *) ALLOCV(rectangle, kbest);
    
    long long idx;
+   long long ctr=0;
    for(idx=param->start;idx<param->end;idx++){
 
       // convert index to rectangular coordinates
@@ -154,8 +156,10 @@ static void *work_function(void *arg)
       } else if (heap_rcmp(&current,r) > 0) {
          r[0] = current;
          minheap_sink(r,kbest,sizeof(rectangle),heap_rcmp); 
-      } 
+      }
+     ctr++; 
    } 
+   param->ctr=ctr;
    param->duration=clock()-param->duration;
    return r;
 }
@@ -206,7 +210,9 @@ rectangle *multicore_lrt(grid *g,int kbest)
        }
        param[i].p = p;
        param[i].kbest = kbest; 
-
+       //add measure thread process rectangle number
+       printf("Thread (%d) processing grid (start, end): (%lld,%lld): interval: %lld): %lld\n ",i, param[i].start, param[i].end, param[i].end-param[i].start);
+      
        // create thread 
        pthread_create(&thread[i], NULL, &work_function, &param[i]);
 
@@ -224,7 +230,7 @@ rectangle *multicore_lrt(grid *g,int kbest)
        // copy result 
        memcpy(r+i*kbest,thread_r,sizeof(rectangle)*kbest);
        //duration
-       printf("Runtime of thread (%d) = %f\n", i, ((double)param[i].duration / CLOCKS_PER_SEC));  
+       printf("Runtime of thread (%d) = %f; counter=(%lld)\n", i, ((double)param[i].duration / CLOCKS_PER_SEC), param[i].ctr);  
    }
 
    // sort all result and return it
