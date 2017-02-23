@@ -1,0 +1,5 @@
+#!/bin/sh 
+   computetimes=" "
+  ./lrt -p -m 0 test.dat 2>testtxt 
+  computetimes="`awk -F,'{if($1=="total-compute-time-s") print $2}' testtxt` $computetimes"
+  echo "$computetimes"

@@ -1,0 +1,23 @@
+before sink heapsize=10,rs[1,0,1,1]=-94.058647,r[1,0,1,0]=-148.994339
+before sink  heapsize=10,hidx=0, r[1,0,1,0]=-148.994339
+before sink  heapsize=10,hidx=1, r[0,0,1,0]=-148.916870
+before sink  heapsize=10,hidx=2, r[0,0,0,0]=-148.896683
+before sink  heapsize=10,hidx=3, r[0,1,1,1]=-101.250458
+before sink  heapsize=10,hidx=4, r[0,0,0,1]=-147.929581
+before sink  heapsize=10,hidx=5, r[1,0,2,0]=-146.948959
+before sink  heapsize=10,hidx=6, r[1,1,1,1]=-72.656311
+before sink  heapsize=10,hidx=7, r[1,1,2,1]=-97.708534
+before sink  heapsize=10,hidx=8, r[0,1,0,1]=-147.731201
+before sink  heapsize=10,hidx=9, r[0,1,0,2]=-144.713852
+----------------------
+after heapsize=10,hidx=0, r[1,0,1,1]=-94.058647
+after heapsize=10,hidx=1, r[0,0,1,0]=-148.916870
+after heapsize=10,hidx=2, r[0,0,0,0]=-148.896683
+after heapsize=10,hidx=3, r[0,1,1,1]=-101.250458
+after heapsize=10,hidx=4, r[0,0,0,1]=-147.929581
+after heapsize=10,hidx=5, r[1,0,2,0]=-146.948959
+after heapsize=10,hidx=6, r[1,1,1,1]=-72.656311
+after heapsize=10,hidx=7, r[1,1,2,1]=-97.708534
+after heapsize=10,hidx=8, r[0,1,0,1]=-147.731201
+after heapsize=10,hidx=9, r[0,1,0,2]=-144.713852
+----------------------
