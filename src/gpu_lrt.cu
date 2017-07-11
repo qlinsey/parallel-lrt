@@ -287,16 +287,14 @@ __host__ rectangle *gpu_lrt(grid *g,int kbest)
    cudaMemcpy(pb_d,p->B,num_cells,cudaMemcpyHostToDevice);
    cudaMemcpy(px_d,p->X,num_cells,cudaMemcpyHostToDevice);
    cudaMemcpy(py_d,p->Y,num_cells,cudaMemcpyHostToDevice);
-   cudaEvent_t start,stop;
-   cudaEventCreate(&start);
-   cudaEventCreate(&stop);
+  
    // allocate memory for resulting heaps for each thread 
    // and heap sizes.  
    rectangle *r_global_d; 
    cudaMalloc(&r_global_d,sizeof(rectangle)*kbest*THREADS_IN_GRID);
    int *heapsize_global_d; 
    cudaMalloc(&heapsize_global_d,sizeof(int)*THREADS_IN_GRID);
-   cudaEventRecord(start);
+
    // run kernel
    dim3 dimg(GRIDSIZE_X,GRIDSIZE_Y);
    dim3 dimb(BLOCKSIZE_X,BLOCKSIZE_Y);
@@ -310,16 +308,13 @@ __host__ rectangle *gpu_lrt(grid *g,int kbest)
       py_d,  
       r_global_d,
       heapsize_global_d);
-   cudaEventRecord(stop);
+
    // retrieve result from GPGPU
    rectangle *r_global = ALLOCV(rectangle, sizeof(rectangle)*kbest*THREADS_IN_GRID);
    int *heapsize_global = ALLOCV(int, sizeof(int) * THREADS_IN_GRID); 
    cudaMemcpy(r_global,r_global_d,sizeof(rectangle)*kbest*THREADS_IN_GRID,cudaMemcpyHostToDevice);
    cudaMemcpy(heapsize_global,heapsize_global_d,sizeof(int)*THREADS_IN_GRID,cudaMemcpyHostToDevice);
-   cudaEventSynchronize(stop);
-   float mseconds=0;
-   cudaEventElapsedTime(&mseconds,start,stop);
-   printf("lrt kernel computation time=%f (s)\n",((double)mseconds/1000));
+
    ////////////////////////////////////////////////////////////////////////////////////
    // join heaps of all threads to a single heap 
    rectangle *r = ALLOCV(rectangle,kbest);

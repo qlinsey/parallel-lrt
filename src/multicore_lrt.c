@@ -21,8 +21,6 @@ typedef struct thread_param {
              end; 
    prefix_sums *p;               // prefix sums
    int kbest;                    // kbest
-   clock_t duration;            //duration
-   long long ctr;               //counter 
 } thread_param;
    
 
@@ -49,7 +47,6 @@ static void *work_function(void *arg)
 {
    // get info from parameters of the thread
    thread_param *param = (thread_param *) arg;
-   param->duration=clock();
    prefix_sums *p = param->p;
    grid *g = p->gridref; 
    int kbest=param->kbest;
@@ -73,7 +70,6 @@ static void *work_function(void *arg)
    rectangle *r = (rectangle *) ALLOCV(rectangle, kbest);
    
    long long idx;
-   long long ctr=0;
    for(idx=param->start;idx<param->end;idx++){
 
       // convert index to rectangular coordinates
@@ -156,11 +152,9 @@ static void *work_function(void *arg)
       } else if (heap_rcmp(&current,r) > 0) {
          r[0] = current;
          minheap_sink(r,kbest,sizeof(rectangle),heap_rcmp); 
-      }
-     ctr++; 
+      } 
    } 
-   param->ctr=ctr;
-   param->duration=clock()-param->duration;
+
    return r;
 }
 
@@ -210,9 +204,7 @@ rectangle *multicore_lrt(grid *g,int kbest)
        }
        param[i].p = p;
        param[i].kbest = kbest; 
-       //add measure thread process rectangle number
-       printf("Thread (%d) processing grid (start, end): (%lld,%lld): interval: %lld): %lld\n ",i, param[i].start, param[i].end, param[i].end-param[i].start);
-      
+
        // create thread 
        pthread_create(&thread[i], NULL, &work_function, &param[i]);
 
@@ -228,9 +220,7 @@ rectangle *multicore_lrt(grid *g,int kbest)
        pthread_join(thread[i], (void **)&thread_r);
 
        // copy result 
-       memcpy(r+i*kbest,thread_r,sizeof(rectangle)*kbest);
-       //duration
-       printf("Runtime of thread (%d) = %f; counter=(%lld)\n", i, ((double)param[i].duration / CLOCKS_PER_SEC), param[i].ctr);  
+       memcpy(r+i*kbest,thread_r,sizeof(rectangle)*kbest);  
    }
 
    // sort all result and return it
