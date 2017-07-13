@@ -1,0 +1,16 @@
+set terminal pdf
+set output "multicore.pdf"
+set xrange [0:20]
+set yrange [0:20]
+set y2range [0:100]
+set format y2 '%2.0f%%'
+set y2tics 0,20
+set ytics nomirror
+set grid
+set key right bottom
+set key box linestyle 1
+set xlabel "Number of Cores"
+set ylabel "SpeedUp"
+set y2label "Efficiency"
+plot "speedup.dat" axis x1y1 title "SpeedUp"  with lines lw 10 lt rgb "blue",\
+     "eff.dat" axis x1y2 title "Efficiency" with lines lw 10 lt rgb "#006400"

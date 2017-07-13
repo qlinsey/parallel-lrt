@@ -1,0 +1,12 @@
+set terminal pdf
+set output "norec_multicore.pdf"
+set xrange [0:20]
+set yrange [0:100000000]
+set ytics nomirror
+set grid
+set xlabel "Number of Cores"
+set ylabel " No. of Rectanges/Sec"
+set title "Multi-core Computation Cost"
+#set format y "10^{%L}"
+unset key
+plot "noRec_multicore.dat" axis x1y1  with lines lw 10 lt rgb "blue"
