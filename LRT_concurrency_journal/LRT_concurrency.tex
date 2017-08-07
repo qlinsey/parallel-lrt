@@ -767,13 +767,9 @@ for verification in synthetic data sets. Answers to the following questions were
 
 \subsubsection{Naive vs. Inclusive/Exclusive Implementation}
  We run the naive and inclusive/exclusive implementation on an 8-core E5520 Intel server to compare their performance. Data grid varies from $(100,100)$ to $(1000,1000)$. The results are shown in Figure~\ref{fast:subfig1} and Figure~\ref{fast:subfig2}.\\
- \begin{comment}
-  The naive approach requires $\bigo (n^2)$ computation  for a given region in the worst case. The computation result of each region is stored into memory and $kbest$ regions are obtained by sorting all of the results at the end. The final top-k results takes up $\bigo(n^4)$ space. Due to large memory space required and long computing, the naive approach was only be able to generate the $kbest$ results from $(100,100)$ to $(300,300)$ in our machine. \\
-  Inclusive/Exclusive pre-computation approach is devised to improve the computation efficiency, which reduces the computation for each region to $\bigo (1)$. In this approach, pre-computed sets take up $\bigo (4n^2)$ space and only the $kbest$ results kept in heap structure at the end, therefore the total space complexity is $\bigo (n^2)$.
- \end{comment}
 From the results in Figure~\ref{fast:subfig1}, we can see that Inclusive/Exclusive approach has a significant speed-up. The number of rectangles per second processed by Inclusive/Exclusive approach is also plotted for various grid sizes in Figure~\ref{fast:subfig2}, it can be seen the result is almost constant, validating that our Inclusive/Exclusive pre-computation approach search complexity is $\bigo (1)$.
 
-
+%cpu
 \begin{figure}[h]
 \centering
 \subfloat[]{
@@ -781,17 +777,36 @@ From the results in Figure~\ref{fast:subfig1}, we can see that Inclusive/Exclusi
 \label{fast:subfig1}
 }
 ~~\subfloat[]{
-\includegraphics[width=0.4\linewidth]{figtkde/fastspeed}
+\includegraphics[width=0.45\linewidth]{figtkde/fastspeed}
 \label{fast:subfig2}
 }
-\caption{Naive vs. Inclusive/Exclusive Approach}\label{fast}
+\caption{Naive vs. Inclusive/Exclusive Approach }\label{fast}
 \end{figure}
 
-
 \subsubsection{Multi-core}
- The multi-core experiment is conducted on a 32-core AMD Opteron(tm) Processor 6128 server with 128GB of RAM. We use data grid with size of (1000,1000) to show the performance scaling. Figure~\ref{multicore} shows that the 1EXP-LRT computation scales very well on multi-core architecture.  The speedup increases near-linearly with the increase of number of cores $(no_c)$ and is consistent with the $\bigo(n^4/no_c)$ running time on each core. A speedup of $n$ on $n$ cores is nearly achieved, indicating near perfect scaling (see Figure~\ref{multicore}(a)).
-
+ The multi-core experiment is conducted on a 32-core AMD Opteron(tm) Processor 6128 server with 128GB of RAM. We use data grid with size of (1000,1000) to show the performance scaling. Figure~\ref{multicore} shows that the 1EXP-LRT computation scales very well on multi-core architecture.  The speedup increases near-linearly with the increase of number of cores $(no_c)$ and is consistent with the $\bigo(n^4/no_c)$ running time on each core. A speedup of $n$ on $n$ cores is nearly achieved, indicating near perfect scaling (see Figure~\ref{multicore}(a)).\\
 The number of rectangles processed per second is plotted against the number of cores in Figure~\ref{multicore}(b).
+%multi-core
+\begin{figure}[h]
+\centering
+\subfloat[Speed-up and Efficiency of Grid (1000,1000) on Multi-core]{
+\includegraphics[width=0.48\linewidth]{figtkde/speedup-efficiency}
+\label{multicore:multicore1}
+}
+~~\subfloat[The number of rectangles processed per second vs. number of cores on Grid (1000,1000)]{
+\includegraphics[width=0.41\linewidth]{figtkde/singlerectangle}
+\label{multicore:norectangles}
+}\\
+~~\subfloat[Speed-up and Efficiency of Grid (1000,1000) on Multi-core 2]{
+\includegraphics[width=0.49\linewidth]{figtkde/multicore}
+\label{multicore:speedup2}
+}
+~~\subfloat[The number of rectangles processed per second vs. number of cores on Grid (1000,1000) on Multi-core2]{
+\includegraphics[width=240pt, height=170pt]{figtkde/norec_multicore}
+\label{multicore:norectangles2}
+}
+\caption{Multi-core Evaluation}\label{multicore}
+\end{figure}
 
 
 \subsubsection{Multi-GPGPU}
@@ -840,53 +855,9 @@ $Grid$ &$block_x$ &$block_y$\\
 
 \subsubsection{EC2 Cloud Cluster}
 We study a cluster composed of $20 EC2$ high-CPU compute nodes and its effect on MPI application scaling. Instances of this family have proportionally more CPU resources than memory (RAM) and are well suited for compute-intensive applications. Figure~\ref{ec2:subfig1} shows the nearly linear speedup with the increase of number of processes for different grid size on cloud cluster. The computation speed of rectangles is plotted out in Figure~\ref{ec2:subfig2}, it shows the computation speed is faster with the increase number of processes on a given data grid and also verifies the constant computation speed for different data grid by a given number of processes.
-%cpu
-\begin{figure}[h]
-\centering
-\subfloat[]{
-\includegraphics[width=0.4\linewidth]{figtkde/naivespeedup}
-\label{fast:subfig1}
-}
-~~\subfloat[]{
-\includegraphics[width=0.45\linewidth]{figtkde/fastspeed}
-\label{fast:subfig2}
-}
-\caption{Speed-up of LRT computation on EC2 cloud cluster }\label{fast}
-\end{figure}
-%multi-core
-\begin{figure}[h]
-\centering
-\subfloat[Speed-up and Efficiency of Grid (1000,1000) on Multi-core]{
-\includegraphics[width=0.45\linewidth]{figtkde/speedup-efficiency}
-\label{multicore:multicore1}
-}
-~~\subfloat[The number of rectangles processed per second vs. number of cores on Grid (1000,1000)]{
-\includegraphics[width=0.4\linewidth]{figtkde/singlerectangle}
-\label{multicore2}
-}
-\caption{Multi-core Evalution}\label{multicore}
-\end{figure}
 
-\begin{figure}[h]
-\centering
-\subfloat[Speed-up and Efficiency of Grid (1000,1000) on Multi-core]{
-\includegraphics[width=0.45\linewidth]{figtkde/speedup-efficiency}
-\label{multicore:multicore1}
-}
-~~\subfloat[Speed-up and Efficiency of Grid (1000,1000) on Multi-core 2]{
-\includegraphics[width=0.45\linewidth]{figtkde/multicore}
-\label{multicore:speedup2}
-}\\
-~~\subfloat[The number of rectangles processed per second vs. number of cores on Grid (1000,1000)]{
-\includegraphics[width=0.45\linewidth]{figtkde/singlerectangle}
-\label{multicore:norectangles}
-}
-~~\subfloat[The number of rectangles processed per second vs. number of cores on Grid (1000,1000) on Multi-core2]{
-\includegraphics[width=0.45\linewidth]{figtkde/norec_multicore}
-\label{multicore:norectangles2}
-}
-\caption{Multi-core Evaluation}\label{multicore}
-\end{figure}
+
+
 
 %gpu
 \begin{figure}[h]
