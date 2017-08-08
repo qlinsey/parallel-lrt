@@ -122,7 +122,7 @@ where  $T(\cdot)$ is some measurable function, $a(\phi)$ is a function of some k
 {\it Let data set $X_R (R\in G)$ be independently distributed with $x_R\sim 1EXP(\theta,\phi,T,B_e,a$). The log-likelihood ratio test statistic for testing $H_{0}: \theta_R = \theta_{\bar R}$ versus $H_{1}: \theta_R \neq \theta_{\bar R}$ is given by:}
 
 \begin{eqnarray}
-\Lambda&={m_R}g_e({G{m_R\over b_R}})-{b_R\over G} {B_e(g_e(G{m_R\over b_R}))}\\&\quad +(1-m_R)g_e({G{1-m_R\over {1-b_R}}})\\&\quad-{(1-b_R)\over G}{B_e(g_e({G{1-m_R\over {1-b_R}}}))}
+\Lambda&={m_R}g_e({G{m_R\over b_R}})-{b_R\over G} {B_e(g_e(G{m_R\over b_R}))} +(1-m_R)g_e({G{1-m_R\over {1-b_R}}})-{(1-b_R)\over G}{B_e(g_e({G{1-m_R\over {1-b_R}}}))}
 \label{eq}
 \end{eqnarray}
 \label{thm1}
@@ -464,7 +464,7 @@ To obtain the tables for $A$, $B$, $X$, and $Y$, we employ dynamic programming. 
 
 
 \begin{eqnarray}
-|A(i,j)|  &= |A(i,j-1)| + |A(i-1,j)| - |A(i-1,j-1)| \\& \quad + |G(i,j)|
+|A(i,j)|  &= |A(i,j-1)| + |A(i-1,j)| - |A(i-1,j-1)|  + |G(i,j)|
 \end{eqnarray}
 \normalsize
 where $|G(i,j)|$~\footnote{(i,j) represents $(x_i,x_j)$ for simplicity.}counts whether there is an element in the cell location $(i,j)$. The first element and the first column and row need to be populated (initialized) so that all cardinalities of $A$ can be computed. The counts in the remaining rows and columns are accumulated through the dependency of the previous row and column. Figure~\ref{prec:subfig1} shows the computation of set $A$ and the implementations of it is listed in Algorithm~\ref{preinex} (see the proofs and the rest implementation of set $B,X,Y$ in Appendix.)\\
@@ -552,10 +552,10 @@ We have
 x\in (h(p_1)\cup h(p_2)\cup ...\cup h(p_n)),&\\
  x\in h(h(p_1)\cup h(p_2)\cup ...\cup h(p_n))
 \end{eqnarray}
-Total number of $kbest$ values:
+Because the total number of $kbest$ values:
 $|(h(p_1)\cup h(p_2)\cup ...\cup h(p_n)|\ge k$, \\
-$x \notin h(p_1)\cup h(p_2)\cup ...\cup h(p_n)$ $\rightarrow x \notin h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$.\\   and $x$ is one of the topk value from all the results\\
- $x\in h((h(p_1)\cup h(p_2)\cup ...\cup h(p_n)))$
+and $x \notin h(p_1)\cup h(p_2)\cup ...\cup h(p_n)$ $\rightarrow x \notin h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$.\\   and $x$ is one of the topk value from all the results\\
+Therefore, $x\in h((h(p_1)\cup h(p_2)\cup ...\cup h(p_n)))$
 
 \noindent $(2) \forall x\in h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$\\
 We have
@@ -564,8 +564,8 @@ We have
 x\in h(p_1)\cup h(p_2)\cup ...\cup h(p_n),&\\
 x\in h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)
 \end{eqnarray}
- $h(h(p_1)\cup h(p_2)\cup ...\cup h(p_n))\subseteq h(p_1)\cup h(p_2)\cup ...\cup h(p_n) \subseteq h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$\\
-$x\in h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$
+Because $h(h(p_1)\cup h(p_2)\cup ...\cup h(p_n))\subseteq h(p_1)\cup h(p_2)\cup ...\cup h(p_n) \subseteq h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$\\
+Therefore, $x\in h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$
 
 From (1) and (2), So the $kbest$ from the whole value set $s$ is same as the reduction from the $kbest$ results from each processes. We implemented $minheap$ and $maxheap$ to store the $kbest$ results for each parallel threads/process.
 
@@ -772,11 +772,11 @@ From the results in Figure~\ref{fast:subfig1}, we can see that Inclusive/Exclusi
 %cpu
 \begin{figure}[h]
 \centering
-\subfloat[]{
+\subfloat[(a) Speed-up of Inclusive/Exclusive approach ]{
 \includegraphics[width=0.4\linewidth]{figtkde/naivespeedup}
 \label{fast:subfig1}
 }
-~~\subfloat[]{
+~~\subfloat[(b) number of rectangles per second processed]{
 \includegraphics[width=0.45\linewidth]{figtkde/fastspeed}
 \label{fast:subfig2}
 }
@@ -784,24 +784,24 @@ From the results in Figure~\ref{fast:subfig1}, we can see that Inclusive/Exclusi
 \end{figure}
 
 \subsubsection{Multi-core}
- The multi-core experiment is conducted on a 32-core AMD Opteron(tm) Processor 6128 server with 128GB of RAM. We use data grid with size of (1000,1000) to show the performance scaling. Figure~\ref{multicore} shows that the 1EXP-LRT computation scales very well on multi-core architecture.  The speedup increases near-linearly with the increase of number of cores $(no_c)$ and is consistent with the $\bigo(n^4/no_c)$ running time on each core. A speedup of $n$ on $n$ cores is nearly achieved, indicating near perfect scaling (see Figure~\ref{multicore}(a)).\\
-The number of rectangles processed per second is plotted against the number of cores in Figure~\ref{multicore}(b).
+ The multi-core experiment is conducted on a 32-core AMD Opteron(tm) Processor 6128 server with 128GB of RAM and ...(gpu2 configuration..). We use data grid with size of (1000,1000) to show the performance scaling. Figure~\ref{multicore:multicore1} and ~\ref{multicore:speedup2} show that the 1EXP-LRT computation scales very well on multi-core architecture.  The speedup increases near-linearly with the increase of number of cores $(no_c)$ and is consistent with the $\bigo(n^4/no_c)$ running time on each core. A speedup of $n$ on $n$ cores is nearly achieved, indicating near perfect scaling.\\
+The number of rectangles processed per second is plotted against the number of cores in Figure~\ref{multicore:norectangles} and ~\ref{multicore:norectangles2}. The results show the linearity of increasing number of rectangles processed per second with increasing number of cores.
 %multi-core
 \begin{figure}[h]
 \centering
-\subfloat[Speed-up and Efficiency of Grid (1000,1000) on Multi-core]{
+\subfloat[(a) Speed-up and Efficiency of Grid (1000,1000) on Multi-core]{
 \includegraphics[width=0.48\linewidth]{figtkde/speedup-efficiency}
 \label{multicore:multicore1}
 }
-~~\subfloat[The number of rectangles processed per second vs. number of cores on Grid (1000,1000)]{
+~~\subfloat[(b) The number of rectangles processed per second vs. number of cores on Grid (1000,1000)]{
 \includegraphics[width=0.41\linewidth]{figtkde/singlerectangle}
 \label{multicore:norectangles}
 }\\
-~~\subfloat[Speed-up and Efficiency of Grid (1000,1000) on Multi-core 2]{
+~~\subfloat[(c) Speed-up and Efficiency of Grid (1000,1000) on Multi-core 2]{
 \includegraphics[width=0.49\linewidth]{figtkde/multicore}
 \label{multicore:speedup2}
 }
-~~\subfloat[The number of rectangles processed per second vs. number of cores on Grid (1000,1000) on Multi-core2]{
+~~\subfloat[(d) The number of rectangles processed per second vs. number of cores on Grid (1000,1000) on Multi-core2]{
 \includegraphics[width=240pt, height=170pt]{figtkde/norec_multicore}
 \label{multicore:norectangles2}
 }
@@ -810,13 +810,31 @@ The number of rectangles processed per second is plotted against the number of c
 
 
 \subsubsection{Multi-GPGPU}
-\noindent The experiments were conducted on an 8-core E5520 Intel server that
-is equipped with two GPGPU $Tesla$ $C1060$ cards supporting CUDA 4.0.
-Each GPGPU card has $4GB$ global memory, $16KB$ shared memory, $240$
-cores and $30$ multiprocessors. See Figure~\ref{gpu:subfig1} and ~\ref{gpu:subfig2}.The results show
-that LRT computation on two GPGPUs is around 2 times faster than that on one single GPGPU. And the computation
-cost of per rectangle is almost constant with the increase
-of data grid for single GPGPU and two GPGPUs.
+\noindent The experiments are conducted on two different GPGPU configurations: (1)An 8-core E5520 Intel server that is equipped with two GPGPU $Tesla$ $C1060$ cards supporting CUDA 4.0. Each GPGPU card has $4GB$ global memory, $16KB$ shared memory, $240$
+cores and $30$ multiprocessors. Experiments are conducted to compare the speed-up performance of GPGPUs with exclusive/inclusive cpu approach (see figure~\ref{gpu:subfig1}) on various data grid size (n,n). Furthermore, the performance of number of rectangles processed per second on one single GPGPU vs. two GPGPUs are compared (see figure ~\ref{gpu:subfig2}). The results show that LRT computation on two GPGPUs is around 2 times faster than that on one single GPGPU regardless of the data grid size. And the computation cost of per rectangle is almost constant with the increase of data grid for single GPGPU and two GPGPUs with exclusive/inclusive cpu approach. (2) An 8-core server that is equipped with two GPGPU $Tesla$ $K20m$ cards supporting CUDA 6.5. Each GPGPU card has $5GB$ global memory,$64KB$ shared memory,$2496$ cores and $13$ multiprocessors. In this architecture, we investigate the speed-up, efficiency and the number of rectangles processed per second with different number of threads on different grid size(see figure ~\ref{gpu:subfig3} and figure ~\ref{gpu:subfig4}). Figure ~\ref{gpu:subfig3} shows the linearly increasing speed-up with increasing number of threads on certain grid size. The efficiency is almost $100\%$. Figure ~\ref{gpu:subfig4} shows the linear increasing speed of processing number of rectangles with the increasing of threads on certain grid size.   \\
+
+%gpu
+\begin{figure}[h]
+\centering
+\subfloat[(a) GPGPU speed-up with inclusive/exclusive cpu approach ]{
+\includegraphics[width=0.45\linewidth]{figtkde/GPUspeedup}
+\label{gpu:subfig1}
+}
+~~\subfloat[(b) Number of rectangles processed per second on single GPGPU vs. two GPGPUs.]{
+\includegraphics[width=0.45\linewidth]{figtkde/gpurecpersec}
+\label{gpu:subfig2}
+}\\
+~~\subfloat[]{
+\includegraphics[width=0.5\linewidth]{figtkde/gpuspeff}
+\label{gpu:subfig3}
+}
+~~\subfloat[]{
+\includegraphics[width=0.5\linewidth]{figtkde/norec_gpu}
+\label{gpu:subfig4}
+}
+\caption{GPGPUs Cost}\label{gpgpus}
+\end{figure}
+
 
 
 \begin{comment}
@@ -858,28 +876,6 @@ We study a cluster composed of $20 EC2$ high-CPU compute nodes and its effect on
 
 
 
-
-%gpu
-\begin{figure}[h]
-\centering
-\subfloat[]{
-\includegraphics[width=0.45\linewidth]{figtkde/GPUspeedup}
-\label{gpu:subfig1}
-}
-~~\subfloat[]{
-\includegraphics[width=0.45\linewidth]{figtkde/gpurecpersec}
-\label{gpu:subfig2}
-}\\
-~~\subfloat[]{
-\includegraphics[width=0.45\linewidth]{figtkde/gpuspeff}
-\label{gpu:subfig3}
-}
-~~\subfloat[]{
-\includegraphics[width=0.45\linewidth]{figtkde/norec_gpu}
-\label{gpu:subfig4}
-}
-\caption{GPGPUs Cost}\label{gpgpus}
-\end{figure}
 
 %ec2speedup
 \begin{figure}[h]
