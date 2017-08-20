@@ -1,7 +1,8 @@
 
-\documentclass[AMA,LATO1COL]{WileyNJD-v2}
+\documentclass[AMA,LATO1COL]{WileyNJD-v2-bak}
 %demo
 \usepackage{comment}
+\usepackage{amssymb}
 \usepackage{tikz}
 \articletype{Article Type}%
 
@@ -137,28 +138,26 @@ For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson dist
 
 \subsection{Parallel Enumeration Schemes}
 \label{sec:mov1}
-In this section, we use a small example to demonstrate two different parallel strategies for performing LRT statistics in one-dimension data grid. The strategies are: (i) Overlapping Enumeration; (ii) Non-overlapping Enumeration. For simplicity, we will describe the strategies on GPGPU computing environment and they can be easily extended to multi-core and pc-clusters computing environments.
+In this section, we use a small example to demonstrate two different parallel strategies for performing LRT statistics in one-dimension data grid. The strategies are: (i) Overlapping Enumeration; (ii) Non-overlapping Enumeration. For simplicity, we will describe the strategies on GPGPU computing environment and they can be easily extended to multi-core and pc-clusters computing environments. In this example, we assume that each block can only maximally process $2$ intervals in GPGPU environment.
 
-$\noindent \textit {Example:}$  A data set has five data points, denoted as $\{0,1,2,3,4\}$. Our task is how to enumerate all of the intervals among these five points in parallel. See Figure~\ref{example1}.
+$\noindent \textit {Example:}$  A data set has five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. Our task is how to enumerate all of the intervals among these five points in parallel. See Figure~\ref{example1}.
 
+ We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i<n) $ , $(0<j \leq n) $ and $(j > i)$.  The total number of intervals among five points is computed as: ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$.
+
+  In the case of Overlapping Enumeration parallel strategy, every two continuous overlapped intervals (i.e. intervals $(i,j),(i,j+1)$) are assigned to a block. From Figure~\ref{example1}(a), $Block_0$ contains intervals: $\{l_{(0,0)},l_{(0,1)}\}$ ; $Block_1$ contains intervals: $\{l_{(1,1)},l_{(1,2)}\}$, we can see that the overlapping scheme enumerates all of the intervals up to size of two. However, some blocks may have fewer number of intervals in this way. For example, $Block_4$ has only one interval(i.e. $\{l_{(3,3)}\}$). This leads to an observation of workload unbalancing among blocks. Furthermore, in each block, different interval is assigned to different thread. The lengths of intervals are different and this can further creates different workload among different threads during brute-force calculation.
 \begin{figure}[t]
 \centering
 \subfloat[Overlapping Enumeration]{
-\includegraphics[width=0.3\linewidth]{figtkde/example11}
+\includegraphics[width=0.4\linewidth]{figtkde/ex11}
 \label{example:subfig11}
 }
 ~~\subfloat[Non-overlapping Enumeration]{
 \includegraphics[width=0.3\linewidth]{figtkde/example12}
 \label{example:subfig12}
 }\\
-\caption{This is the sample figure caption.\label{example1}}
+\caption{Parallel Enumeration Schemes\label{example1}}
 \end{figure}
-
- We express an interval between point $i$ and $j$ as $(i,j-1)$, where $j > i$. We assume that each block can only maximally process $2$ intervals. The total number of intervals among five points is obtained as: ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$.
-
-  In the case of Overlapping Enumeration parallel strategy, every two overlapped intervals is assigned to a block. The next/previous interval always overlaps by one interval and the length of next interval is larger than previous interval.  From Figure~\ref{example1}(a), Block 0: $\{(0,0),(0,1)\}$ ; Block 1: $\{(1,1),(1,2)\}$, we can see that the overlapping scheme enumerates all of the intervals up to size of two. However, some blocks may have fewer number of intervals when the last interval has been enumerated. For Block 4, it has only one interval(i.e. $\{(3,3)\}$). This leads to an observation of workload unbalancing among blocks. Furthermore, in each block, different interval is assigned to different thread. The lengths of intervals are different and this can further creates different workload among different threads during brute-force calculation.
-
-If we plot each interval between point $i$ and $j$ onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the ten intervals forms a triangle shape enclosed by $\{(0,0),(3,3),(0,3)\}$. We notice that the total number of intervals can be treated as the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by $[width,height]=[n+1,{\frac{n}{2}}]$. In our example, $\{(0,0),(0,1),(1,4),(0,4)\}$ forms a rectangle and it has the exact same number of points as the formed triangular shape. Therefore, each point in this rectangle can be mapped to one point in the triangle. In a rectangular shape, we can divide the entire workload equally and assign each to each block. This solves the workload imbalance among blocks. In each block, each thread process the same number of intervals. However, this still does not solve the workload imbalance among each thread because of the LRT computation on different sized region within each block. In next section, we presents a dynamic programming scheme to pre-compute subsets of LRT statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads. \\
+\\If we plot each interval $l_{i,j}$ as a point $(i,j)$ onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the ten intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals can be treated as the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by $[width,height]=[n+1,{\frac{n}{2}}]$. In our example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle and it has the exact same number of points as the formed triangular shape. Therefore, each point in this rectangle can be mapped to one point in the triangle. In a rectangular shape, we can divide the entire workload equally and assign each to each block. This solves the workload imbalance among blocks. In each block, each thread process the same number of intervals. However, this still does not solve the workload imbalance among each thread because of the LRT computation on different sized sub-grid within each block. In next section, we presents a dynamic programming scheme to pre-compute subsets of LRT statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads. \\
 The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In this paper, the Non-overlapping Enumeration strategy, called Range Mapping scheme, is presented to overcome the limitations of the Overlapping Enumeration strategy.
 
 \subsection{Dynamic Pre-computation}
@@ -214,8 +213,8 @@ This pre-computation scheme has been implemented in~\cite{apweb} and we will giv
 \section {Range Mapping Scheme} \label{RMS}
 In this section, we study how parallelism helps to enumerate all of the rectangular regions (R) in a spatial grid (G).
 
-From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n$ data points, denoted as $(i,j)$, are plotted onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PCC) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.\\
-Figure~\ref{trans:subfig1} plots out all of the intervals $(i,j)$ in two-dimensional space and we can see that these points $(i,j)$ forms a triangle. Figure~\ref{trans:subfig2} shows the rectangular-shaped space after transformation.
+From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n$ data points, denoted as $l_{(i,j)}$, are plotted onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PCC) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.\\
+Figure~\ref{trans:subfig1} plots out all of the intervals $l_{(i,j)}$ in two-dimensional space and we can see that these points $(i,j)$ forms a triangle. Figure~\ref{trans:subfig2} shows the rectangular-shaped space after transformation.
 
 \begin{figure}[h]
 \centering
@@ -230,9 +229,9 @@ Figure~\ref{trans:subfig1} plots out all of the intervals $(i,j)$ in two-dimensi
 \caption{1-d Interval Transformation from $[n,n]$ to $[(n+1)/2,n]$}\label{modelBF}
 \end{figure}
 
-If an interval index is given within a range, Horner scheme~\cite{horner} can be applied to generate unique index in desired dimension. Then transformation can be done to map current index to the index in different shaped space. We give details in the following:
+If an interval index is given, Horner scheme~\cite{horner} can be applied to generate unique index in desired dimension. For example, given an interval x, where x is integer number $(0 \leq x \leq n)$, to transform x to 2-dimentional value (i,j), we can use horner scheme: $i=x/n$ and $j= x \mod n$.   Then transformation can be done to map current index (i,j) to the index in different shaped space. We give details in the following:
 \subsection{One-Dimensional Mapping}
-First, we consider the one-dimensional range mapping scheme. The axis oriented rectangles become intervals on one-dimensional space. We assume $n$ is the size of the data grid (i.e. array).\\
+First, we consider the one-dimensional range mapping scheme. We assume there are $n$ data points.\\
 
 \noindent There are two cases for the range mapping in one-dimensional grid: (1) The grid size $n$ is even (2) The grid size $n$ is odd. \\
 
@@ -243,7 +242,7 @@ Given the following information:
 & T = \{(i,j) \in  N^2 | i<=j\}   &\\
 & M = \{0.. \lfloor \frac{n+1}{2}\rfloor \times (n+1)-1\}  &\\
 \end{eqnarray}
-where  $ N$ is coordinate range , $ R$ is rectangular space , $ T$ is triangular space  and $ M$ is number range of intervals.\\
+where  $ N$ is the number of data points, $ R$ forms rectangular space , $ T$ forms triangular space  and $ M$ is number of total intervals.\\
 
 \noindent \textbf{\textit{The grid size $n$ is even:}} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms  $x\in  M$ to a pair in $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the pair $(i,j)\in  R$ to a pair $(i',j')\in  T$ in triangular space.\\
 \noindent\begin{definition}
@@ -340,12 +339,12 @@ Figure~\ref{even:subfig1} and Figure~\ref{odd:subfig1} show the solutions and im
 
 \begin{figure}[h]
 \centering
-\subfloat[Solution when Grid size n is even number ]{
-\includegraphics[width=0.35\linewidth]{figtkde/eventransform}
+\subfloat[ (a) Solution when Grid size n is even number ]{
+\includegraphics[width=0.35\linewidth]{figtkde/solution1}
 \label{even:subfig1}
 }
-~~\subfloat[Solution when Grid size n is odd number ]{
-\includegraphics[width=0.35\linewidth]{figtkde/oddtransform}
+~~\subfloat[ (b) Solution when Grid size n is odd number ]{
+\includegraphics[width=0.35\linewidth]{figtkde/solution2}
 \label{odd:subfig1}
 }
 \caption{1-d Interval Transformation from $[n,n]$ to $[\lfloor (n+1)/2 \rfloor,n+1]$}\label{modelBF}
@@ -784,7 +783,7 @@ From the results in Figure~\ref{fast:subfig1}, we can see that Inclusive/Exclusi
 \end{figure}
 
 \subsubsection{Multi-core}
- The multi-core experiment is conducted on a 32-core AMD Opteron(tm) Processor 6128 server with 128GB of RAM and ...(gpu2 configuration..). We use data grid with size of (1000,1000) to show the performance scaling. Figure~\ref{multicore:multicore1} and ~\ref{multicore:speedup2} show that the 1EXP-LRT computation scales very well on multi-core architecture.  The speedup increases near-linearly with the increase of number of cores $(no_c)$ and is consistent with the $\bigo(n^4/no_c)$ running time on each core. A speedup of $n$ on $n$ cores is nearly achieved, indicating near perfect scaling.\\
+ The multi-core experiment is conducted on a 32-core AMD Opteron(tm) Processor 6128 server with 128GB of RAM and a 64-core AMD Opteron(tm) Processor 6378 server with 384GB of RAM. We use data grid with size of (1000,1000) to show the performance scaling. Figure~\ref{multicore:multicore1} and ~\ref{multicore:speedup2} show that the 1EXP-LRT computation scales very well on multi-core architecture.  The speedup increases near-linearly with the increase of number of cores $(no_c)$ and is consistent with the $\bigo(n^4/no_c)$ running time on each core. A speedup of $n$ on $n$ cores is nearly achieved, indicating near perfect scaling.\\
 The number of rectangles processed per second is plotted against the number of cores in Figure~\ref{multicore:norectangles} and ~\ref{multicore:norectangles2}. The results show the linearity of increasing number of rectangles processed per second with increasing number of cores.
 %multi-core
 \begin{figure}[h]
@@ -810,8 +809,10 @@ The number of rectangles processed per second is plotted against the number of c
 
 
 \subsubsection{Multi-GPGPU}
-\noindent The experiments are conducted on two different GPGPU configurations: (1)An 8-core E5520 Intel server that is equipped with two GPGPU $Tesla$ $C1060$ cards supporting CUDA 4.0. Each GPGPU card has $4GB$ global memory, $16KB$ shared memory, $240$
-cores and $30$ multiprocessors. Experiments are conducted to compare the speed-up performance of GPGPUs with exclusive/inclusive cpu approach (see figure~\ref{gpu:subfig1}) on various data grid size (n,n). Furthermore, the performance of number of rectangles processed per second on one single GPGPU vs. two GPGPUs are compared (see figure ~\ref{gpu:subfig2}). The results show that LRT computation on two GPGPUs is around 2 times faster than that on one single GPGPU regardless of the data grid size. And the computation cost of per rectangle is almost constant with the increase of data grid for single GPGPU and two GPGPUs with exclusive/inclusive cpu approach. (2) An 8-core server that is equipped with two GPGPU $Tesla$ $K20m$ cards supporting CUDA 6.5. Each GPGPU card has $5GB$ global memory,$64KB$ shared memory,$2496$ cores and $13$ multiprocessors. In this architecture, we investigate the speed-up, efficiency and the number of rectangles processed per second with different number of threads on different grid size(see figure ~\ref{gpu:subfig3} and figure ~\ref{gpu:subfig4}). Figure ~\ref{gpu:subfig3} shows the linearly increasing speed-up with increasing number of threads on certain grid size. The efficiency is almost $100\%$. Figure ~\ref{gpu:subfig4} shows the linear increasing speed of processing number of rectangles with the increasing of threads on certain grid size.   \\
+\noindent The experiments are conducted on two different GPGPU configurations:
+\\ (1)An 8-core E5520 Intel server that is equipped with two GPGPU $Tesla$ $C1060$ cards supporting CUDA 4.0. Each GPGPU card has $4GB$ global memory, $16KB$ shared memory, $240$
+cores and $30$ multiprocessors. Experiments are conducted to compare the speed-up performance of GPGPUs with exclusive/inclusive cpu approach (see figure~\ref{gpu:subfig1}) on various data grid size (n,n). Furthermore, the performance of number of rectangles processed per second on one single GPGPU vs. two GPGPUs are compared (see figure ~\ref{gpu:subfig2}). The results show that LRT computation on two GPGPUs is around 2 times faster than that on one single GPGPU regardless of the data grid size. And the computation cost of per rectangle is almost constant with the increase of data grid for single GPGPU and two GPGPUs with exclusive/inclusive cpu approach.
+\\ (2) An 8-core server that is equipped with two GPGPU $Tesla$ $K20m$ cards supporting CUDA 6.5. Each GPGPU card has $5GB$ global memory,$64KB$ shared memory,$2496$ cores and $13$ multiprocessors. In this architecture, we investigate the speed-up, efficiency and the number of rectangles processed per second with different number of threads on different grid size(see figure ~\ref{gpu:subfig3} and figure ~\ref{gpu:subfig4}). Figure ~\ref{gpu:subfig3} shows the linearly increasing speed-up with increasing number of threads on a given grid size. The efficiency is almost $100\%$. Figure ~\ref{gpu:subfig4} shows the linear increasing speed of processing number of rectangles with the increasing of threads on a given grid size.   \\
 
 %gpu
 \begin{figure}[h]
@@ -824,11 +825,11 @@ cores and $30$ multiprocessors. Experiments are conducted to compare the speed-u
 \includegraphics[width=0.45\linewidth]{figtkde/gpurecpersec}
 \label{gpu:subfig2}
 }\\
-~~\subfloat[]{
+~~\subfloat[(c) Speed-up and Efficiency of threads processing on different given grids in GPGPU architecture]{
 \includegraphics[width=0.5\linewidth]{figtkde/gpuspeff}
 \label{gpu:subfig3}
 }
-~~\subfloat[]{
+~~\subfloat[(d) The number of rectangles processed per second vs. number of threads on different given grids]{
 \includegraphics[width=0.5\linewidth]{figtkde/norec_gpu}
 \label{gpu:subfig4}
 }
