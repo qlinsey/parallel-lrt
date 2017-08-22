@@ -39,8 +39,15 @@
 
 \presentaddress{This is sample for present address text this is sample for present address text}
 
-\abstract[Summary]{Given an $(n,n)$ spatial data grid draw from an arbitrary distribution, the Likelihood Ratio Test (LRT) is a method for identifying hotspots or anomalous rectangular regions. The naive approach has $\bigo(n^4) $ time complexity. In this paper, we study how parallel processing can accelerate LRT computation for one parameter exponential (1EXP) distributions.\\
-A novel range mapping scheme is proposed to balance workloads, and this is confirmed with a dynamic pre-computation algorithm for fast computing when LRT computation is from 1EXP family. Various implementations are devised to adapt to different parallel and distributed architectures: Multi-core, Multi-GPGPU and EC2 cloud cluster. Extensive experiments are provided to demonstrate the utility of this approach and extensive performance analysis is given.}
+\abstract[Summary]{The Likelihood Ratio Test (LRT) is a method for identifying hotspots or anomalous rectangular regions for an spatial data grid that draws from an arbitrary distribution.  LRT has wide-spread applications from social-media applications powered by mobile phones to medical image processing applications. Unfortunately, a na\"ive implementation of LRT exhibits a worst-case time complexity of $\bigo(n^4)$ for a two-dimensional grid.
+%BFS: Please check largest grid they computed with simple method.
+For larger grids with a grid size of more than $64\times 64$ cells, a na\"ive implementation of LRT becomes intractable~\cite{jour}.
+
+In this paper, we propose a parallel processing scheme for LRT computations for one parameter exponential (1EXP) distribution for multi-dimensional spatial data grids. The parallel processing scheme reduces LRT computations to a completely balanced embarrassingly parallel problem utilizing a novel range mapping scheme. The new range mapping scheme relies on a dynamic pre-computation algorithm. Experiments were conducted for various computer architectures and platforms including shared-memory multi-core machines, multi-GPGPU computers, and the EC2 cloud computer.
+%Extensive experiments are provided to demonstrate the utility of this approach and extensive %performance analysis is given.
+%BFS: Mention speedups here to single-core CPU.
+In the experiments we could achieve speedups up to xxxx using our parallel processing scheme.
+}
 
 \keywords{Spatial outlier, Likelihood Ratio Test, one parameter exponential distribution, Inclusive/Exclusive Principle, GPGPUs, Multi-core, EC2 Cloud Cluster}
 
@@ -64,13 +71,11 @@ The statistical method of choice for identifying hotspots or anomalous regions
 is the Likelihood Ratio Test (LRT) statistic.
 Informally, the LRT of a spatial region compares the likelihood of the given spatial region with its complement, and hence can be used to identify hotspot regions. In \cite{chisquare}, it was shown that the LRT value follows a $\chi^{2}$ distribution, independent of the distribution of the underlying data.
 
-\noindent For a $n\times n$ spatial grid, the total execution time for identifying the most
-anomalous region is $\bigo(n^4)$. The worst case of computing
-single LRT for a region R is $\bigo(n^2)$. is As noted by Wu et al.\cite{jour}, a naive implementation of LRT for a moderately sized $64 \times 64$  spatial grid may take nearly six hundred days.\footnote{The experiment results were  reported in  2009.} Wu et al.\cite{jour} proposed a method which reduces the computation time to eleven days. However as noted previously in \cite{ADMA}, this approach will not scale for larger data sets and the biggest spatial grid reported in\cite{jour} was $64 \times  64$.
+\noindent For a $n\times n$ spatial grid, the worst-case execution time for identifying the most
+anomalous region is $\bigo(n^4)$. The reason for this high complexity class is that we have $\bigo(n^2)$ regions in the grid and computing the value of a single region $R$ in the grid consumes $\bigo(n^2)$. As noted by Wu et al.\cite{jour}, a naive implementation of LRT for a moderately sized $64 \times 64$  spatial grid may take nearly six hundred days\footnote{The experiment results were  reported in  2009.}. Wu et al.\cite{jour} proposed a method which reduces the computation time to eleven days. However as noted previously in~\cite{ADMA}, this approach will not scale for larger data sets and the biggest spatial grid reported in\cite{jour} was $64 \times  64$.
 
-\noindent The nature of LRT permits the independent computation of regions. This facilitates parallelization to some degree. However, the LRT computation of a region $R$ involves the irregularly shaped computation of $\bar R$\cite{apweb}. In a parallel environment, this can drastically reduce its computation performance\cite{irregular1,irregular2,irregular3}.
-
-\noindent To reduce the overall enumeration cost and address the irregular computation, Pang et al.\cite{apweb} presented an unified parallel approach for generalized LRT computation in spatial data grids on a GPGPU environment. The whole grid is partitioned into overlapped blocks and LRT computation is performed independently on each block in shared memory. For the regions which do not fit into shared memory, the computation is done on a CPU. While performance is greatly improved compared to the naive approach on a CPU, the granularity within each block is coarse. The computation of various sized sub-regions creates imbalanced workloads on each thread.
+\noindent The nature of LRT permits the independent computation of regions. This facilitates parallelization to some degree. However, the LRT computation of a region $R$ involves the irregularly shaped computation of $\bar R$~\cite{apweb}. In a parallel environment, this can drastically reduce its computation performance\cite{irregular1,irregular2,irregular3}.
+To reduce the overall enumeration cost and address the irregular computation, Pang et al.~\cite{apweb} presented a unified parallel approach for generalized LRT computation in spatial data grids on a GPGPU environment. The whole grid is partitioned into overlapped blocks and LRT computation is performed independently on each block in shared memory. For the regions which do not fit into shared memory, the computation is done on a CPU. While performance is greatly improved compared to the naive approach on a CPU, the granularity within each block is coarse. The computation of various sized sub-regions creates imbalanced workloads on each thread.
 
 \noindent In this work, we focus on the parallel strategies for improving the LRT computation for the 1EXP family. We use a different strategy to ensure workload on each ``parallel computing component" (PCC) \footnote{We define the (computational) granularity of a parallel architecture as the largest ``computational component" that should run sequentially on an ``application computing component". It refers to ``block/thread" for GPGPU, ``core" for multi-core and ``process" for cloud pc-cluster} is balanced. We propose a novel range mapping scheme to transform irregular shaped region space to a contiguously regular shaped region space with regards to iterate all of the regions in spatial grid (G). The fine-grained workload on each PCC is produced by partitioning the regular space into different equal sized portions. Furthermore, a dynamic pre-computing scheme from our previous work\cite{apweb} based on the Inclusive/Exclusive principle is presented for 1EXP. Four pre-computed data sets corresponding to four corners of the data grid are generated to reduce the cost of querying the intermediate statistics of each region to $\bigo(1)$.
 
@@ -79,45 +84,38 @@ Overall, the {\bf contributions} in our work are:
 \renewcommand{\labelitemi}{$\bullet$}
 \item A novel range mapping scheme is proposed to provide the fine-grained parallelism for LRT computation.
 \item A dynamic pre-computation scheme is presented for fast computing.
-\item A kbest reduction strategy is presented for accumulating distributed results on each ``PCC" and forms the final top-k regions at the end.
+\item A $k$-best reduction strategy is presented for accumulating distributed results on each ``PCC" and forms the final top-k regions at the end.
 \item The algorithms are implemented on various parallel architectures and corresponding performances are studied.
 \end{itemize}
 
 The rest of the paper is structured as follows. In Section~\ref{BG}, we provide
 background materials on LRT computation and its variation on 1EXP family. Motivations are presented in Section~\ref{sec:mov}.  In Section~\ref{RMS}, we present a novel range mapping scheme for 1EXP LRT computation for multi-dimensional data grid. In Section~\ref{DM}, we explain how we use
 Inclusive/Exclusive rule and dynamic programming to speed up the enumeration and
-processing of regions measurements. To produce the final top-k regions, each parallel portion generates top k results and kbest reduction is done on CPU. The proof is provided in Section~\ref{KBEST}. The details of the implementation on Multi-core, GPGPU and EC2 cloud cluster are presented in
+processing of regions measurements. To produce the final top-k regions, each parallel portion generates top $k$ results and $k$-best reduction is done on CPU. The proof is provided in Section~\ref{KBEST}. The details of the implementation on Multi-core, GPGPU and EC2 cloud cluster are presented in
 Section~\ref{IMPDA}. In Section~\ref{EA}, we evaluate experiments results on these different architectures and discussion is given. Related
 work is provided in Section~\ref{RW}. We give our conclusion in
 Section~\ref{CC}.
 
 \section{Background}\label{BG}
 
-\subsection{The Likelihood Ratio Test (LRT)}
 We provide a brief but self-contained introduction for using LRT
 to find anomalous regions in a spatial setting. The regions are mapped onto a spatial grid $G$. Given a data set $X$, an assumed model distribution $f(X,\theta)$, a null hypothesis $H_{0}: \theta \in \Theta_0 $ and an alternate hypothesis $H_{1}: \theta \in {\Theta-\Theta_0}$, LRT is the ratio
-
 \begin{eqnarray}\label{eq}
 \lambda &=& \frac{ sup_{\Theta_0}\{L(\theta|X)|H_{0}\}}
 {sup_{\Theta}\{L(\theta|X)|H_{1}\}}
 \end{eqnarray}
-\noindent where $L()$ is the likelihood function and  $\theta$ is a set of parameters
+where $L()$ is the likelihood function and  $\theta$ is a set of parameters
 for the distribution \cite{jour}. In a spatial setting, the null hypothesis is that the data in a region $R$ (that is currently being tested) and
 its complement (denoted as $\bar R$) are governed by the same
 parameters. Thus if a region $R$ is anomalous then the alternate hypothesis will most likely be a better fit and the denominator of $\lambda$ will have a higher value for the maximum likelihood estimator of $\theta$.  A remarkable fact about $\lambda$ is that under mild regularity conditions, the asymptotic distribution of $\Lambda \equiv -2log\lambda$ follows a $ \chi ^{2}_{k}$ distribution with $k$ degrees of freedom, where
-$k$ is the number of free parameters\footnote{If the $\chi^{2}$ distribution is not applicable then Monte Carlo simulation can be used to ascertain the $p$-value}. Thus regions whose $\Lambda$ value falls in the tail of the $\chi^{2}$ distribution are likely to be anomalous \cite{jour}.
+$k$ is the number of free parameters\footnote{If the $\chi^{2}$ distribution is not applicable then Monte Carlo simulation can be used to ascertain the $p$-value.}. Thus regions whose $\Lambda$ value falls in the tail of the $\chi^{2}$ distribution are likely to be anomalous~\cite{jour}.
 
-\subsection{One-parameter Exponential Family (1EXP)}
-We briefly introduce the one-parameter exponential family (1EXP) and the simplified LRT statistic on 1EXP.
-
- The distribution of a random variable $x\in X$ belongs to a one-parameter exponential family \cite{DagMaxmize} (denoted by $x\sim 1EXP(\theta,\phi,T,B_e,a$) if it has probability density given by
-
+The one-parameter exponential family (1EXP) simplifies the computation of the LRT statistic. The distribution of a random variable $x\in X$ belongs to a one-parameter exponential family \cite{DagMaxmize} (denoted by $x\sim 1EXP(\theta,\phi,T,B_e,a$) if it has a probability density given by
 \begin{equation}
 f(x; \theta )=C(x,\phi)exp((\theta T(x)-B_e(\theta))/a(\phi))
 \label{oneexp}
 \end{equation}
-where  $T(\cdot)$ is some measurable function, $a(\phi)$ is a function of some known scale parameter $(\phi>0)$, $\theta$ is an unknown parameter (called the natural parameter), and $B_e(\cdot)$is a strictly convex function. The support of ${x:f(x;\theta)>0}$ is independent of $\theta$.
-
+where  $T(\cdot)$ is some measurable function, $a(\phi)$ is a function of some known scale parameter $(\phi>0)$, $\theta$ is an unknown parameter (called the natural parameter), and $B_e(\cdot)$ is a strictly convex function. Note that the support of ${x:f(x;\theta)>0}$ is independent of $\theta$.
 \begin{theorem}\label{thm1}
 {\it\cite{DagMaxmize}:}
 {\it Let data set $X_R (R\in G)$ be independently distributed with $x_R\sim 1EXP(\theta,\phi,T,B_e,a$). The log-likelihood ratio test statistic for testing $H_{0}: \theta_R = \theta_{\bar R}$ versus $H_{1}: \theta_R \neq \theta_{\bar R}$ is given by:}
@@ -128,23 +126,22 @@ where  $T(\cdot)$ is some measurable function, $a(\phi)$ is a function of some k
 \end{eqnarray}
 \label{thm1}
 \end{theorem}
-
-where $m_R$ is the fraction measurement of Region $R$ in total and $b_R$ is the fraction of baseline measure of Region $R$ in total. Correspondingly, $1-m_R$ is the fraction measurement of Region $\bar R$ in total and $1-b_R$ is the fraction of baseline measure of Region $R$ in total. $m_R$  and $b_R$ are important measurements to calculate the statistic of 1EXP. See the detail of the function of $g_e$, $G$ and $B_e$ in \cite{DagMaxmize}.
-
-For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson distribution with baseline $b$ and intensity $\lambda$, then  a random variable $x \sim Poisson(\lambda \mu)$ is a member of 1EXP with $T(x)=x/\mu$, $\Phi=1/\mu$, $a(\Phi)=\Phi$, $\theta=log(\lambda)$, $B_e{\theta}=exp(\eta)$, $g_e{(x)}=log(x)$. For any regions $R$ and $\bar R$, $m_R$ and $m_{\bar R}$ are independently Poisson distributed with mean $\{exp(\theta_R)b_R\}$ and $\{exp(\theta_{\bar R})b_{\bar R}\}$ respectively. Then $b_R={b_R\over {b_R+b_{\bar R}}}$ and $m_R={m_R\over {m_R+m_{\bar R}}}$. The log-likelihood ratio is calculated by: $c(m_R log ({m_R\over {b_R}})+ (1-m_R)log({{1-m_R}\over {1-b_R} }))$ (c.f. \cite{DagMaxmize}). The closed-form formula for LRT generalizes to the 1EXP family of distributions \cite{DagMaxmize}.
+Parameter $m_R$ is the fraction measurement of Region $R$ in total and $b_R$ is the fraction of baseline measure of Region $R$ in total. Correspondingly, $1-m_R$ is the fraction measurement of Region $\bar R$ in total and $1-b_R$ is the fraction of baseline measure of Region $R$ in total. Parameters $m_R$  and $b_R$ are important measurements to calculate the statistic of 1EXP. More information about the functions $g_e$, $G$ and $B_e$ can be foudn in~\cite{DagMaxmize}.
+For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson distribution with baseline $b$ and intensity $\lambda$, then a random variable $x \sim Poisson(\lambda \mu)$ is a member of 1EXP with $T(x)=x/\mu$, $\Phi=1/\mu$, $a(\Phi)=\Phi$, $\theta=log(\lambda)$, $B_e{\theta}=exp(\eta)$, $g_e{(x)}=log(x)$. For any regions $R$ and $\bar R$, $m_R$ and $m_{\bar R}$ are independently Poisson distributed with a mean of $\{exp(\theta_R)b_R\}$ and $\{exp(\theta_{\bar R})b_{\bar R}\}$, respectively. Then, $b_R={b_R\over {b_R+b_{\bar R}}}$ and $m_R={m_R\over {m_R+m_{\bar R}}}$. The log-likelihood ratio is calculated by: $c(m_R log ({m_R\over {b_R}})+ (1-m_R)log({{1-m_R}\over {1-b_R} }))$~(c.f. \cite{DagMaxmize}). The closed-form formula for LRT generalizes to the 1EXP family of distributions~\cite{DagMaxmize}.
 
 \section{Motivations}
 \label{sec:mov}
 
 \subsection{Parallel Enumeration Schemes}
 \label{sec:mov1}
-In this section, we use a small example to demonstrate two different parallel strategies for performing LRT statistics in one-dimension data grid. The strategies are: (i) Overlapping Enumeration; (ii) Non-overlapping Enumeration. For simplicity, we will describe the strategies on GPGPU computing environment and they can be easily extended to multi-core and pc-clusters computing environments. In this example, we assume that each block can only maximally process $2$ intervals in GPGPU environment.
 
-$\noindent \textit {Example:}$  A data set has five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. Our task is how to enumerate all of the intervals among these five points in parallel. See Figure~\ref{example1}.
+% Remove notion of GPGPU in this section / just say parallel computer
+In this section, we use a small example to demonstrate two different parallel strategies for performing LRT statistics in one-dimension data grid. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. For simplicity, we will describe the strategies on abstract parallel machine not detailing its implementation on a concrete parallel platform. In this example, we assume that each block can only maximally process $2$ intervals by a parallel unit of the parallel machine.
 
- We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i<n) $ , $(0<j \leq n) $ and $(j > i)$.  The total number of intervals among five points is computed as: ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$.
+%BFS: Please expand the example text. The explanation is too short!! Highlight the difference between the two strategies.
 
-  In the case of Overlapping Enumeration parallel strategy, every two continuous overlapped intervals (i.e. intervals $(i,j),(i,j+1)$) are assigned to a block. From Figure~\ref{example1}(a), $Block_0$ contains intervals: $\{l_{(0,0)},l_{(0,1)}\}$ ; $Block_1$ contains intervals: $\{l_{(1,1)},l_{(1,2)}\}$, we can see that the overlapping scheme enumerates all of the intervals up to size of two. However, some blocks may have fewer number of intervals in this way. For example, $Block_4$ has only one interval(i.e. $\{l_{(3,3)}\}$). This leads to an observation of workload unbalancing among blocks. Furthermore, in each block, different interval is assigned to different thread. The lengths of intervals are different and this can further creates different workload among different threads during brute-force calculation.
+$\noindent \textit {Example:}$ Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT for the one-dimensional spatial data grid. To compute the LRT, we enumerate all of the intervals among these five points in parallel. The Figure~\ref{example1} illustrates the enumeration of all the intervals.
+ We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ pairs for $(i,j)$ fulfilling  the constraint.  In the case of Overlapping Enumeration parallel strategy, every two continuous overlapped intervals (i.e. intervals $(i,j),(i,j+1)$) are assigned to a block. From Figure~\ref{example1}(a), $Block_0$ contains intervals: $\{l_{(0,0)},l_{(0,1)}\}$ ; $Block_1$ contains intervals: $\{l_{(1,1)},l_{(1,2)}\}$, we can see that the overlapping scheme enumerates all of the intervals up to size of two. However, some blocks may have fewer number of intervals in this way. For example, $Block_4$ has only one interval(i.e. $\{l_{(3,3)}\}$). This leads to an observation of workload unbalancing among blocks. Furthermore, in each block, different interval is assigned to different thread. The lengths of intervals are different and this can further creates different workload among different threads during brute-force calculation.
 \begin{figure}[t]
 \centering
 \subfloat[Overlapping Enumeration]{
@@ -157,7 +154,7 @@ $\noindent \textit {Example:}$  A data set has five data points, denoted as $\{O
 }\\
 \caption{Parallel Enumeration Schemes\label{example1}}
 \end{figure}
-\\If we plot each interval $l_{i,j}$ as a point $(i,j)$ onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the ten intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals can be treated as the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by $[width,height]=[n+1,{\frac{n}{2}}]$. In our example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle and it has the exact same number of points as the formed triangular shape. Therefore, each point in this rectangle can be mapped to one point in the triangle. In a rectangular shape, we can divide the entire workload equally and assign each to each block. This solves the workload imbalance among blocks. In each block, each thread process the same number of intervals. However, this still does not solve the workload imbalance among each thread because of the LRT computation on different sized sub-grid within each block. In next section, we presents a dynamic programming scheme to pre-compute subsets of LRT statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads. \\
+If we plot each interval $l_{i,j}$ as a point $(i,j)$ onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the ten intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals can be treated as the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by $[width,height]=[n+1,{\frac{n}{2}}]$. In our example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle and it has the exact same number of points as the formed triangular shape. Therefore, each point in this rectangle can be mapped to one point in the triangle. In a rectangular shape, we can divide the entire workload equally and assign each to each block. This solves the workload imbalance among blocks. In each block, each thread process the same number of intervals. However, this still does not solve the workload imbalance among each thread because of the LRT computation on different sized sub-grid within each block. In next section, we presents a dynamic programming scheme to pre-compute subsets of LRT statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads. \\
 The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In this paper, the Non-overlapping Enumeration strategy, called Range Mapping scheme, is presented to overcome the limitations of the Overlapping Enumeration strategy.
 
 \subsection{Dynamic Pre-computation}
@@ -211,7 +208,7 @@ From Equation ~\ref{EQ:precomp}, we can see that a query time of $\bigo(1)$ can 
 This pre-computation scheme has been implemented in~\cite{apweb} and we will give more details and related algorithms in this paper.
 
 \section {Range Mapping Scheme} \label{RMS}
-In this section, we study how parallelism helps to enumerate all of the rectangular regions (R) in a spatial grid (G).
+In this section, we study how parallelism helps to enumerate all of the rectangular regions (R) in a spatial grid (G). We first explain one-dimensional, two-dimensional, and $k$-dimensional data-grids.
 
 From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n$ data points, denoted as $l_{(i,j)}$, are plotted onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PCC) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.\\
 Figure~\ref{trans:subfig1} plots out all of the intervals $l_{(i,j)}$ in two-dimensional space and we can see that these points $(i,j)$ forms a triangle. Figure~\ref{trans:subfig2} shows the rectangular-shaped space after transformation.
@@ -535,11 +532,11 @@ Output: accumulated counts $A(i,j)$\\
 \EndFor
 \end{algorithmic}
 \end{algorithm}
-\section{ Kbest Reduction Scheme}\label{KBEST}
-To find top-k\footnote{Top-k and kbest are exchangeable terms.} anomalous rectangular regions, a heap with maximium size of k is built from each ``parallel computing component'' (PCC). A further reduction strategy is applied on these k heaps to get final kbest regions.
+\section{ $K$-best Reduction Scheme}\label{KBEST}
+To find top-k\footnote{Top-k and $k$-best are exchangeable terms.} anomalous rectangular regions, a heap with maximium size of k is built from each ``parallel computing component'' (PCC). A further reduction strategy is applied on these k heaps to get final $k$-best regions.
 
-A LRT value set, denoted as $s=\{s_1,s_2, .., s_i,...,s_n\}$, is generated from $n$ rectangular regions set ${R}$. $\{R\}$ is divided into $t$ equal portions: $\{p_1,p_2,..,p_i,...,p_t\}$, where $1\le t\le n$. Each portion is processed in parallel and a $kbest$ result with heap structure is generated correspondingly. The $kbest$ result from each portion is $p_{1_k},p_{2_k},...,p_{i_k},..p_{t_k}$.\\ We denote the process of finding $kbest$ using heap sort as $h()$. We also denote the $kbest$ result from original data grid is $\{s_{r0},s_{r1},...,s_{rk}\}$. And the $kbest$ value from each parallel portion $p_i$ is $\{s_{i0},s_{i1},...,s_{ik}\}$. And we assume the $kbest$ value are in ascending order. For example, $s_{r0}\le s_{r1},...,\le s_{rk}$, $s_{i0}\le s_{i1},...,\le s_{ik}$.
-\begin{lemma}{\bf $KBestReduction:$} The $kbest$ LRT values from the value set ${s}$ is equal to the $kbest$ values obtained by performing $kbest$ reduction from each parallel portion:
+A LRT value set, denoted as $s=\{s_1,s_2, .., s_i,...,s_n\}$, is generated from $n$ rectangular regions set ${R}$. $\{R\}$ is divided into $t$ equal portions: $\{p_1,p_2,..,p_i,...,p_t\}$, where $1\le t\le n$. Each portion is processed in parallel and a $k$-best result with heap structure is generated correspondingly. The $k$-best result from each portion is $p_{1_k},p_{2_k},...,p_{i_k},..p_{t_k}$.\\ We denote the process of finding $k$-best using heap sort as $h()$. We also denote the $k$-best result from original data grid is $\{s_{r0},s_{r1},...,s_{rk}\}$. And the $k$-best value from each parallel portion $p_i$ is $\{s_{i0},s_{i1},...,s_{ik}\}$. And we assume the $k$-best value are in ascending order. For example, $s_{r0}\le s_{r1},...,\le s_{rk}$, $s_{i0}\le s_{i1},...,\le s_{ik}$.
+\begin{lemma}{\bf $KBestReduction:$} The $k$-best LRT values from the value set ${s}$ is equal to the $k$-best values obtained by performing $k$-best reduction from each parallel portion:
 $h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)=h(h(p_1)\cup h(p_2)\cup ...\cup h(p_n))$.
 \end{lemma}
 We give proof by contradiction:
@@ -551,7 +548,7 @@ We have
 x\in (h(p_1)\cup h(p_2)\cup ...\cup h(p_n)),&\\
  x\in h(h(p_1)\cup h(p_2)\cup ...\cup h(p_n))
 \end{eqnarray}
-Because the total number of $kbest$ values:
+Because the total number of $k$-best values:
 $|(h(p_1)\cup h(p_2)\cup ...\cup h(p_n)|\ge k$, \\
 and $x \notin h(p_1)\cup h(p_2)\cup ...\cup h(p_n)$ $\rightarrow x \notin h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$.\\   and $x$ is one of the topk value from all the results\\
 Therefore, $x\in h((h(p_1)\cup h(p_2)\cup ...\cup h(p_n)))$
@@ -566,7 +563,7 @@ x\in h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)
 Because $h(h(p_1)\cup h(p_2)\cup ...\cup h(p_n))\subseteq h(p_1)\cup h(p_2)\cup ...\cup h(p_n) \subseteq h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$\\
 Therefore, $x\in h(p_1\cup p_2\cup ...\cup p_i \cup...\cup p_n)$
 
-From (1) and (2), So the $kbest$ from the whole value set $s$ is same as the reduction from the $kbest$ results from each processes. We implemented $minheap$ and $maxheap$ to store the $kbest$ results for each parallel threads/process.
+From (1) and (2), So the $k$-best from the whole value set $s$ is same as the reduction from the $k$-best results from each processes. We implemented $minheap$ and $maxheap$ to store the $k$-best results for each parallel threads/process.
 
 \section {Implementations on Parallel and Distributed Architecture }\label{IMPDA}
 To detect anomalous regions in spatial/spatial-temporal grid, for brute-force approach, all the contiguous and rectangular areas are searched and LRT computation is performed over each of them. The regions within top-k LRT statistic values are treated as potential outliers. However, it is very time-consuming to identity the outliers.
@@ -600,7 +597,7 @@ Output: top k anomalous regions\\
 \end{algorithm}
 
 \subsection{Inclusive/Exclusive Approach}
-Inclusive/Exclusive scheme in section 3 is applied on the whole spatial grid (G) to generate four pre-computed data set. For any given region $R$, retrieving the intermediate statistic value is $\bigo(1)$ time. The overall enumeration cost is reduced in a sequential version. The kbest heap structure is built to keep global top-k regions. The implementation is shown in algorithm~\ref{Inex}.
+Inclusive/Exclusive scheme in section 3 is applied on the whole spatial grid (G) to generate four pre-computed data set. For any given region $R$, retrieving the intermediate statistic value is $\bigo(1)$ time. The overall enumeration cost is reduced in a sequential version. The $k$-best heap structure is built to keep global top-k regions. The implementation is shown in algorithm~\ref{Inex}.
 \begin{algorithm}[t!]
 \label{algobr1}
 \caption{Inclusive/Exclusive top-k LRT search}\label{Inex}
@@ -631,7 +628,7 @@ Multi-core computers, consisting two or more processors working together on a si
 
 There are two key advantages associated with LRT computation work on a multi-core architecture with Pthreads. Firstly, for a 1EXP family data grid, LRT computation of each rectangular region is independent. This provides the task parallelism. Secondly, the non-gap ranging mapping scheme clearly enables us to divide the workload to each thread equally, improving scaling.
 
-The implementation of multi-core version is shown in algorithm~\ref{multicorem} and algorithm~\ref{multicorep}. In the main program, each thread is assigned with the same workload and same size of range. It is equal to: total number of regions to be searched divides by the defined number of threads. The range mapping scheme enables each thread to process in a non-gap rectangular range. Otherwise, it is hard to provide each thread same size of range. Each thread performs LRT computation on its own part and keeps $kbest$ regions using $min, max$ heap structure. After all threads finishes computation, the heap function is applied to all the $kbest$ results and get the final $kbest$ regions.
+The implementation of multi-core version is shown in algorithm~\ref{multicorem} and algorithm~\ref{multicorep}. In the main program, each thread is assigned with the same workload and same size of range. It is equal to: total number of regions to be searched divides by the defined number of threads. The range mapping scheme enables each thread to process in a non-gap rectangular range. Otherwise, it is hard to provide each thread same size of range. Each thread performs LRT computation on its own part and keeps $k$-best regions using $min, max$ heap structure. After all threads finishes computation, the heap function is applied to all the $k$-best results and get the final $k$-best regions.
 
 \begin{algorithm}[t!]
 \caption{LRT implementation on $Multi\-core$ Architecture: Main Part}\label{multicorem}
@@ -687,7 +684,7 @@ allows graphic card to be used as general purpose parallel computing
 device.  We briefly describe how the NVIDIA's Compute Unified Device Architecture (\cuda) framework supports massively parallel computing \cite{cuda}. A \cuda program consists of one or more phases that are executed on either the host (\cpu) or the device (\gpu). The host code executed on \cpu exhibits little or no data parallelism and the device code (called kernel) executed on \gpu side exhibits high amount of data parallelism. The kernel uses large number of threads to exploit data parallelism. The \cuda threads are
 extremely light weight and require very few clock cycles to be generated and scheduled on the \gpu. The key programming challenge is to map the computation and expressing them onto an abstract model consisting of grids, blocks and threads. The kernel is then executed by a grid of thread blocks. Blocks execute concurrently among multiprocessors while threads in a given block execute concurrently within a single multiprocessor. Only threads within a block can cooperate with each other.
 
-To exploit CUDA for the LRT computation, all of regions are mapped from triangular range shape onto rectangular range shape. The rectangular range is divided into different non-overlap blocks with same size. Each block has a number of threads to process a number of rectangular regions. For fast computation, each block searches all of the rectangular regions which can be fitted into shared memory. Each thread is assigned to compute a subset of rectangle. To avoid transfering all the results back CPU, parallel reduction is performed. Each thread keeps a $kbest$ heap. Furthermore, keeping the total $kbest$ heaps not arbitrary, it might lead  to another kernel for parallel reduction. By defining block number and thread number for different size of data grid, each thread is responsible for varied number of rectangles in different kernel. We did the implementation on single GPGPU and multi-GPGPU and measured the performance.  The implementation of single GPGPU is shows in algorithm ~\ref{gpgpus}. For multi-GPGPU implementation, we divide the whole workload equally to each GPGPU. Final $kbest$ regions are obtained after each device return back all the $kbest$ heaps.
+To exploit CUDA for the LRT computation, all of regions are mapped from triangular range shape onto rectangular range shape. The rectangular range is divided into different non-overlap blocks with same size. Each block has a number of threads to process a number of rectangular regions. For fast computation, each block searches all of the rectangular regions which can be fitted into shared memory. Each thread is assigned to compute a subset of rectangle. To avoid transfering all the results back CPU, parallel reduction is performed. Each thread keeps a $k$-best heap. Furthermore, keeping the total $k$-best heaps not arbitrary, it might lead  to another kernel for parallel reduction. By defining block number and thread number for different size of data grid, each thread is responsible for varied number of rectangles in different kernel. We did the implementation on single GPGPU and multi-GPGPU and measured the performance.  The implementation of single GPGPU is shows in algorithm ~\ref{gpgpus}. For multi-GPGPU implementation, we divide the whole workload equally to each GPGPU. Final $k$-best regions are obtained after each device return back all the $k$-best heaps.
 
 \begin{algorithm}[t!]
 \label{al}
@@ -717,7 +714,7 @@ Output: top k anomalous regions processed by each thread\\
 \end{algorithm}
 
 \subsection{Amazon EC2 Cloud Cluster }
-Cloud computing offers a highly scalable infrastructure for high performance computing. Amazon Elastic Compute Cloud (Amazon EC2) enables ?compute? in the cloud. It is possible to get a set of computing instances on demand without requiring a lot of maintenance and financial resources a common cluster would need. We present our parallel implementation for cloud computing using MPI. The workload is equally assigned to each process based on our range mapping scheme and each process performs LRT computation on each rectangle and produces $kbest$ regions with heap structure using reduce function. The implementation is shown in algorithm~\ref{mpi}.
+Cloud computing offers a highly scalable infrastructure for high performance computing. Amazon Elastic Compute Cloud (Amazon EC2) enables ?compute? in the cloud. It is possible to get a set of computing instances on demand without requiring a lot of maintenance and financial resources a common cluster would need. We present our parallel implementation for cloud computing using MPI. The workload is equally assigned to each process based on our range mapping scheme and each process performs LRT computation on each rectangle and produces $k$-best regions with heap structure using reduce function. The implementation is shown in algorithm~\ref{mpi}.
 
 \begin{algorithm}[t!]
 \label{al}
