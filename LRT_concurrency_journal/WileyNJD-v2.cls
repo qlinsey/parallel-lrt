@@ -1634,10 +1634,10 @@ Volume\ \@jvol, Article ID\ \@artid, \lastpageref*{LastPages}~pages\par%
 \def\headfootrule#1{\gdef\@headfootrule{#1}}\headfootrule{{\rule{\textwidth}{.5\p@}}}%
 
 \def\historykern#1{\gdef\history@kern{#1}}\historykern{\nobreakspace{}\kern.5pt}
-\def\@dummy@received{\textcolor{red}{Received:\history@kern{}00\history@kern{}Month\history@kern{}0000}}%
-\def\@dummy@revised{\textcolor{red}{Revised:\history@kern{}00\history@kern{}Month\history@kern{}0000}}%
-\def\@dummy@accepted{\textcolor{red}{Accepted:\history@kern{}00\history@kern{}Month\history@kern{}0000}}%
-\def\@dummy@pubdate{\textcolor{red}{Published\history@kern{}on:\history@kern{}00\history@kern{}Month\history@kern{}0000}}%
+\def\@dummy@received{\textcolor{black}{}}%
+\def\@dummy@revised{\textcolor{black}{}}%
+\def\@dummy@accepted{\textcolor{black}{}}%
+\def\@dummy@pubdate{\textcolor{black}{}}%
 \def\historydates#1{\gdef\@history@dates{#1}}%
 \historydates{{\titlepageheadfont%
   \ifx\@received\@empty\@dummy@received\else\@received\fi\historydatesvertbar%
