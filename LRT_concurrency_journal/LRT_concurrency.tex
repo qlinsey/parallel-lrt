@@ -1,5 +1,5 @@
 
-\documentclass[AMA,LATO1COL]{WileyNJD-v2-bak}
+\documentclass[AMA,LATO1COL]{WileyNJD-v2}
 %demo
 \usepackage{comment}
 \usepackage{amssymb}
@@ -41,12 +41,11 @@
 
 \abstract[Summary]{The Likelihood Ratio Test (LRT) is a method for identifying hotspots or anomalous rectangular regions for an spatial data grid that draws from an arbitrary distribution.  LRT has wide-spread applications from social-media applications powered by mobile phones to medical image processing applications. Unfortunately, a na\"ive implementation of LRT exhibits a worst-case time complexity of $\bigo(n^4)$ for a two-dimensional grid.
 %BFS: Please check largest grid they computed with simple method.
-For larger grids with a grid size of more than $64\times 64$ cells, a na\"ive implementation of LRT becomes intractable~\cite{jour}.
+For larger grids with a grid size of more than $64\times 64$ cells, a na\"ive implementation of LRT becomes intractable~\cite{jour} and it takes around several days to execute Grid(64,64) on a single-core CPU.
 
-In this paper, we propose a parallel processing scheme for LRT computations for one parameter exponential (1EXP) distribution for multi-dimensional spatial data grids. The parallel processing scheme reduces LRT computations to a completely balanced embarrassingly parallel problem utilizing a novel range mapping scheme. The new range mapping scheme relies on a dynamic pre-computation algorithm. Experiments were conducted for various computer architectures and platforms including shared-memory multi-core machines, multi-GPGPU computers, and the EC2 cloud computer.
-%Extensive experiments are provided to demonstrate the utility of this approach and extensive %performance analysis is given.
+In this paper, we propose a parallel processing scheme for LRT computations for one parameter exponential (1EXP) distribution for multi-dimensional spatial data grids. The parallel processing scheme reduces LRT computations to a completely balanced embarrassingly parallel problem utilizing a novel range mapping scheme. The new range mapping scheme relies on a dynamic pre-computation algorithm. Experiments were conducted for various computer architectures and platforms including shared-memory multi-core machines, multi-GPGPU computers, and the EC2 cloud computer. Extensive experiments are provided to demonstrate the utility of this approach and extensive performance analysis is given.
 %BFS: Mention speedups here to single-core CPU.
-In the experiments we could achieve speedups up to xxxx using our parallel processing scheme.
+In the experiments we could achieve speedups up to $20,000$ times using our parallel processing scheme on Grid $(1000,1000)$.
 }
 
 \keywords{Spatial outlier, Likelihood Ratio Test, one parameter exponential distribution, Inclusive/Exclusive Principle, GPGPUs, Multi-core, EC2 Cloud Cluster}
@@ -77,14 +76,14 @@ anomalous region is $\bigo(n^4)$. The reason for this high complexity class is t
 \noindent The nature of LRT permits the independent computation of regions. This facilitates parallelization to some degree. However, the LRT computation of a region $R$ involves the irregularly shaped computation of $\bar R$~\cite{apweb}. In a parallel environment, this can drastically reduce its computation performance\cite{irregular1,irregular2,irregular3}.
 To reduce the overall enumeration cost and address the irregular computation, Pang et al.~\cite{apweb} presented a unified parallel approach for generalized LRT computation in spatial data grids on a GPGPU environment. The whole grid is partitioned into overlapped blocks and LRT computation is performed independently on each block in shared memory. For the regions which do not fit into shared memory, the computation is done on a CPU. While performance is greatly improved compared to the naive approach on a CPU, the granularity within each block is coarse. The computation of various sized sub-regions creates imbalanced workloads on each thread.
 
-\noindent In this work, we focus on the parallel strategies for improving the LRT computation for the 1EXP family. We use a different strategy to ensure workload on each ``parallel computing component" (PCC) \footnote{We define the (computational) granularity of a parallel architecture as the largest ``computational component" that should run sequentially on an ``application computing component". It refers to ``block/thread" for GPGPU, ``core" for multi-core and ``process" for cloud pc-cluster} is balanced. We propose a novel range mapping scheme to transform irregular shaped region space to a contiguously regular shaped region space with regards to iterate all of the regions in spatial grid (G). The fine-grained workload on each PCC is produced by partitioning the regular space into different equal sized portions. Furthermore, a dynamic pre-computing scheme from our previous work\cite{apweb} based on the Inclusive/Exclusive principle is presented for 1EXP. Four pre-computed data sets corresponding to four corners of the data grid are generated to reduce the cost of querying the intermediate statistics of each region to $\bigo(1)$.
+\noindent In this work, we focus on the parallel strategies for improving the LRT computation for the 1EXP family. We use a different strategy to ensure workload on each ``parallel unit" (PU) \footnote{We define the (computational) granularity of a parallel architecture as the largest ``computational unit" that should run sequentially on an ``application computing unit". It refers to ``block/thread" for GPGPU, ``core" for multi-core and ``process" for cloud pc-cluster} is balanced. We propose a novel range mapping scheme to transform irregular shaped region space to a contiguously regular shaped region space with regards to iterate all of the regions in spatial grid (G). The fine-grained workload on each PU is produced by partitioning the regular space into different equal sized portions. Furthermore, a dynamic pre-computing scheme from our previous work\cite{apweb} based on the Inclusive/Exclusive principle is presented for 1EXP. Four pre-computed data sets corresponding to four corners of the data grid are generated to reduce the cost of querying the intermediate statistics of each region to $\bigo(1)$.
 
 Overall, the {\bf contributions} in our work are:
 \begin{itemize}
 \renewcommand{\labelitemi}{$\bullet$}
 \item A novel range mapping scheme is proposed to provide the fine-grained parallelism for LRT computation.
 \item A dynamic pre-computation scheme is presented for fast computing.
-\item A $k$-best reduction strategy is presented for accumulating distributed results on each ``PCC" and forms the final top-k regions at the end.
+\item A $k$-best reduction strategy is presented for accumulating distributed results on each ``PU" and forms the final top-k regions at the end.
 \item The algorithms are implemented on various parallel architectures and corresponding performances are studied.
 \end{itemize}
 
@@ -136,12 +135,28 @@ For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson dist
 \label{sec:mov1}
 
 % Remove notion of GPGPU in this section / just say parallel computer
-In this section, we use a small example to demonstrate two different parallel strategies for performing LRT statistics in one-dimension data grid. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. For simplicity, we will describe the strategies on abstract parallel machine not detailing its implementation on a concrete parallel platform. In this example, we assume that each block can only maximally process $2$ intervals by a parallel unit of the parallel machine.
+In this section, we use an example to demonstrate two different parallel strategies for performing LRT statistics in one-dimension data grid. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. Here we simulate the architecture environment in ~\cite{apweb} and illustrate its drawbacks. The non-overlapping Enumeration strategy, called Range Mapping scheme, will be presented in this paper to overcome the limitations of the Overlapping Enumeration strategy. For simplicity, we will describe the strategies on abstract parallel machine not detailing its implementation on a concrete parallel platform. \\
+
 
 %BFS: Please expand the example text. The explanation is too short!! Highlight the difference between the two strategies.
 
-$\noindent \textit {Example:}$ Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT for the one-dimensional spatial data grid. To compute the LRT, we enumerate all of the intervals among these five points in parallel. The Figure~\ref{example1} illustrates the enumeration of all the intervals.
- We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ pairs for $(i,j)$ fulfilling  the constraint.  In the case of Overlapping Enumeration parallel strategy, every two continuous overlapped intervals (i.e. intervals $(i,j),(i,j+1)$) are assigned to a block. From Figure~\ref{example1}(a), $Block_0$ contains intervals: $\{l_{(0,0)},l_{(0,1)}\}$ ; $Block_1$ contains intervals: $\{l_{(1,1)},l_{(1,2)}\}$, we can see that the overlapping scheme enumerates all of the intervals up to size of two. However, some blocks may have fewer number of intervals in this way. For example, $Block_4$ has only one interval(i.e. $\{l_{(3,3)}\}$). This leads to an observation of workload unbalancing among blocks. Furthermore, in each block, different interval is assigned to different thread. The lengths of intervals are different and this can further creates different workload among different threads during brute-force calculation.
+EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT for the one-dimensional spatial data grid. In this example, we assume that each interval in data grid contains $(m_r, b_r)$ to be used for $LRT$ computation. $m_r$ and $b_r$ takes 4 bytes separately. Each parallel unit of the parallel machine can only maximally process 16 bytes of data. Therefore, each parallel unit can only maximally process $2$ intervals.\\
+ To compute the LRT, we need to enumerate all of the intervals among these five points. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ pairs for $(i,j)$ fulfilling  the constraint.
+
+ \begin{itemize}
+ \item \emph{Overlapping Enumeration parallel strategy:}
+Since each parallel unit of the parallel machine can only maximally store and process $16$ bytes of data, only $2$ intervals can be processed for a single parallel unit. The overlapping strategy is proposed to enumerate every two continuous overlapped intervals (i.e. intervals $(i,j),(i,j+1)$ fitted to a parallel unit. The rest of non-continuous intervals can not be fitted to a parallel unit because the data size to calculate $LRT$ is larger than $16$ bytes. The $LRTs$ of these non-continuous intervals will be processed and merged on a sequential unit (CPU) (please see the details in ~\cite{apweb}). To allocate statistic values of intervals to parallel unit for processing $LRT$ calculation, every two consecutive intervals are assigned to a certain parallel unit according to the starting point index of interval. Table ~\ref{exampletable} shows the intervals processed by each parallel unit. For example, $PU_0$ contains intervals: $\{l_{(0,0)},l_{(0,1)}\}$ ; $PU_1$ contains intervals: $\{l_{(1,1)},l_{(1,2)}\}$, we can see that the overlapping scheme enumerates all of the intervals up to size of two. Figure~\ref{example1} illustrates the enumeration of all the intervals for those $5$ data points. \\
+ There are few drawbacks of this approach: (1) Non-continuous intervals cannot be processed by parallel unit. There are around $n\times {n \choose k}$ intervals will be processed sequentially. (2)Some $PUs$ may have fewer number of intervals in this way. For example, $PU_4$ has only one interval(i.e. $\{l_{(3,3)}\}$). This leads to an observation of workload unbalancing among $PUs$.   (3)Furthermore, for each $PU$, each interval is assigned to a thread. The lengths of intervals are different and this can further creates different workload among different threads when accumulating statistics when computing $LRT$.\\
+ To overcome these drawbacks and to fully utilize the parallel unit, Non-Overlapping Enumeration parallel strategy and pre-computing strategy are proposed in the following to enable $LRT$ computation of all of intervals by each parallel unit.  Moreover, horner scheme is used to allocate certain interval to certain $PU$.
+
+\item \emph{Non-Overlapping Enumeration parallel strategy:}
+If we map each interval $l_{i,j}$ as a point $(i,j)$ and plot these points onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the $10$ intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals is the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by this product: $[width,height]=[n+1,{\frac{n}{2}}]$. In this example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle $R_1$ and it has the exact same number of points as the formed triangular shape $R_2$. Therefore, each point in this rectangle can be mapped to one point in the triangle space. This means each interval in the one-dimensional grid has one-to-one mapping from triangular space to rectangular space (Please see Table ~\ref{ex-nonoverlap})\\
+There are a few advantages: (1) This solves the workload imbalance among $PUs$. Each $PU$ processes same amount of intervals. In the rectangular space $R_1$, we can assign the same amount of intervals (i.e. points in this example) to each $PU$ by dividing the entire space equally. (2) By using a dynamic programming scheme in section ~\ref{sec:mov2} to pre-compute subsets of $LRT$ statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads due to the $LRT$ computation on different sized sub-grid for each thread.
+
+ \end{itemize}
+
+
+
 \begin{figure}[t]
 \centering
 \subfloat[Overlapping Enumeration]{
@@ -154,8 +169,58 @@ $\noindent \textit {Example:}$ Assume we have a one-dimensional spatial data gri
 }\\
 \caption{Parallel Enumeration Schemes\label{example1}}
 \end{figure}
-If we plot each interval $l_{i,j}$ as a point $(i,j)$ onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the ten intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals can be treated as the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by $[width,height]=[n+1,{\frac{n}{2}}]$. In our example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle and it has the exact same number of points as the formed triangular shape. Therefore, each point in this rectangle can be mapped to one point in the triangle. In a rectangular shape, we can divide the entire workload equally and assign each to each block. This solves the workload imbalance among blocks. In each block, each thread process the same number of intervals. However, this still does not solve the workload imbalance among each thread because of the LRT computation on different sized sub-grid within each block. In next section, we presents a dynamic programming scheme to pre-compute subsets of LRT statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads. \\
-The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In this paper, the Non-overlapping Enumeration strategy, called Range Mapping scheme, is presented to overcome the limitations of the Overlapping Enumeration strategy.
+
+\begin{table}[!ht]
+  \centering
+  \caption{Example: PU assignment  }\label{exampletable}
+  \subfloat[Intervals on PU\label{maptable1}]{
+    \centering
+\begin{tabular}{|c|c|c|}
+	\hline
+$Grid$ &$interval_1$ &$interval_2$\\
+	\hline
+$PU_1$     & $l_{(0,0)}$ & $l_{(0,1)}$\\
+	\hline
+$PU_2$     & $l_{(1,1})$ & $l_{(1,2)}$\\
+	\hline
+$PU_3$     & $l_{(2,2)}$& $l_{(2,3)}$\\
+    \hline
+$PU_4$     & $l_{(3,3)}$& \\
+\hline
+\end{tabular}
+  }
+  \subfloat[ Intervals on CPU\label{maptable2}]{
+    \centering
+   \begin{tabular}{|c|}
+	\hline
+$intervals$ \\
+	\hline
+$l_{(0,2)}$ \\
+	\hline
+$l_{(0,3})$ \\
+	\hline
+$l_{(1,3)}$\\
+\hline
+\end{tabular}
+}
+
+\end{table}
+
+\begin{table}[t]
+\centering \caption{Interval Transformation of Non-Overlapping Enumeration\label{tab:op}}
+     \begin{tabular}{|c|c|c|}
+	\hline
+    (0,0)$\rightarrow (0,0)$  &  $(0,1) \rightarrow (0,1)$&  $(0,2) \rightarrow (0,2)$ \\
+    \hline
+    (0,3)$\rightarrow (0,3)$  &  $(0,4) \rightarrow (3,3)$&  $(1,4) \rightarrow (2,2)$ \\
+    \hline
+    (1,3)$\rightarrow (2,3)$  &  $(1,0) \rightarrow (1,1)$&  $(1,1) \rightarrow (1,2)$ \\
+    \hline
+     (1,2)$\rightarrow (1,3)$  &    &  \\
+    \hline
+\end{tabular}
+\label{ex-nonoverlap}
+\end{table}
 
 \subsection{Dynamic Pre-computation}
 \label{sec:mov2}
@@ -210,7 +275,7 @@ This pre-computation scheme has been implemented in~\cite{apweb} and we will giv
 \section {Range Mapping Scheme} \label{RMS}
 In this section, we study how parallelism helps to enumerate all of the rectangular regions (R) in a spatial grid (G). We first explain one-dimensional, two-dimensional, and $k$-dimensional data-grids.
 
-From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n$ data points, denoted as $l_{(i,j)}$, are plotted onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PCC) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.\\
+From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n$ data points, denoted as $l_{(i,j)}$, are plotted onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PU) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.\\
 Figure~\ref{trans:subfig1} plots out all of the intervals $l_{(i,j)}$ in two-dimensional space and we can see that these points $(i,j)$ forms a triangle. Figure~\ref{trans:subfig2} shows the rectangular-shaped space after transformation.
 
 \begin{figure}[h]
@@ -533,7 +598,7 @@ Output: accumulated counts $A(i,j)$\\
 \end{algorithmic}
 \end{algorithm}
 \section{ $K$-best Reduction Scheme}\label{KBEST}
-To find top-k\footnote{Top-k and $k$-best are exchangeable terms.} anomalous rectangular regions, a heap with maximium size of k is built from each ``parallel computing component'' (PCC). A further reduction strategy is applied on these k heaps to get final $k$-best regions.
+To find top-k\footnote{Top-k and $k$-best are exchangeable terms.} anomalous rectangular regions, a heap with maximium size of k is built from each ``parallel computing component'' (PU). A further reduction strategy is applied on these k heaps to get final $k$-best regions.
 
 A LRT value set, denoted as $s=\{s_1,s_2, .., s_i,...,s_n\}$, is generated from $n$ rectangular regions set ${R}$. $\{R\}$ is divided into $t$ equal portions: $\{p_1,p_2,..,p_i,...,p_t\}$, where $1\le t\le n$. Each portion is processed in parallel and a $k$-best result with heap structure is generated correspondingly. The $k$-best result from each portion is $p_{1_k},p_{2_k},...,p_{i_k},..p_{t_k}$.\\ We denote the process of finding $k$-best using heap sort as $h()$. We also denote the $k$-best result from original data grid is $\{s_{r0},s_{r1},...,s_{rk}\}$. And the $k$-best value from each parallel portion $p_i$ is $\{s_{i0},s_{i1},...,s_{ik}\}$. And we assume the $k$-best value are in ascending order. For example, $s_{r0}\le s_{r1},...,\le s_{rk}$, $s_{i0}\le s_{i1},...,\le s_{ik}$.
 \begin{lemma}{\bf $KBestReduction:$} The $k$-best LRT values from the value set ${s}$ is equal to the $k$-best values obtained by performing $k$-best reduction from each parallel portion:
@@ -568,7 +633,7 @@ From (1) and (2), So the $k$-best from the whole value set $s$ is same as the re
 \section {Implementations on Parallel and Distributed Architecture }\label{IMPDA}
 To detect anomalous regions in spatial/spatial-temporal grid, for brute-force approach, all the contiguous and rectangular areas are searched and LRT computation is performed over each of them. The regions within top-k LRT statistic values are treated as potential outliers. However, it is very time-consuming to identity the outliers.
 
-To improve performance, pre-computation method is presented based on inclusive/exclusive scheme. Furthermore, we devise range mapping scheme to transform the total rectangular regions from triangular shaped space to rectangular shaped space. This mapping have a contiguous space without gap to enable the workload perfectly partitioned into same amount for each PCC.
+To improve performance, pre-computation method is presented based on inclusive/exclusive scheme. Furthermore, we devise range mapping scheme to transform the total rectangular regions from triangular shaped space to rectangular shaped space. This mapping have a contiguous space without gap to enable the workload perfectly partitioned into same amount for each PU.
 
 We implemented the naive approach, inclusive/exclusive approach on a single CPU and range mapping scheme on different parallel and distributed architectures: Multi-core, GPGPU and EC2 Cloud Cluster in two-dimensional grid $(n,n)$.\footnote{Please see source code~\cite{lrtsrc}.}
 
