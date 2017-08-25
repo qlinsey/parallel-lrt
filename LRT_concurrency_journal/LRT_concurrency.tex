@@ -139,17 +139,17 @@ In this section, we demonstrate the two different parallel strategies for perfor
 
 %BFS: Please expand the example text. The explanation is too short!! Highlight the difference between the two strategies.
 
-EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT for the one-dimensional spatial data grid. In this example, we assume that for each interval in the data grid we have the parameters $(m_r, b_r)$  for the $LRT$ computation. The parameters $m_r$ and $b_r$ require 4 bytes of data storage, respectively. Let's assume that each parallel unit has at most 16 bytes of data storage. Hence, each parallel unit is limited to at most two intervals. To compute the LRT for the one-dimensional data grid, we enumerate all intervals that can be spawned over the one-dimensional data grid. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ intervals, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds.  
+EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT for the one-dimensional spatial data grid. In this example, we assume that for each interval in the data grid we have the parameters $(m_r, b_r)$  for the $LRT$ computation. The parameters $m_r$ and $b_r$ require 4 bytes of data storage, respectively. Let's assume that each parallel unit has at most 16 bytes of data storage. Hence, each parallel unit is limited to at most two intervals. To compute the LRT for the one-dimensional data grid, we enumerate all intervals that can be spawned over the one-dimensional data grid. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ intervals, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds.
  \begin{itemize}
  \item \emph{Overlapping Enumeration parallel strategy:}
 Since each parallel unit of the parallel machine can only maximally store and process $16$ bytes of data, only $2$ intervals can be processed for a single parallel unit at once. The overlapping strategy is proposed to enumerate every two continuous overlapped intervals (i.e. intervals $(i,j),(i,j+1)$ fitted to a parallel unit). The remaining non-continuous intervals cannot be fitted to a parallel unit because the required storage to calculate $LRT$ exceeds $16$ bytes. The $LRTs$ of these non-continuous intervals will be processed and merged on a sequential unit (CPU) (please see the details in~\cite{apweb}). To allocate statistic values of intervals to parallel unit for processing $LRT$ calculation, every two consecutive intervals are assigned to a certain parallel unit according to the starting point index of interval. Table~\ref{exampletable} shows the intervals processed by each parallel unit. For example, $PU_0$ contains intervals: $\{l_{(0,0)},l_{(0,1)}\}$ ; $PU_1$ contains intervals: $\{l_{(1,1)},l_{(1,2)}\}$, we can see that the overlapping scheme enumerates all of the intervals up to size of two. Figure~\ref{example1} illustrates the enumeration of all the intervals for those $5$ data points. \\
 
 There are few drawbacks of this approach: First,  non-continuous intervals cannot be processed by parallel units. There are around $n\times {n \choose k}$ intervals will be processed sequentially. Second, some $PUs$ may have fewer number of intervals in this way. For example, $PU_4$ has only one interval (i.e. $\{l_{(3,3)}\}$). This leads to unbalanced workload among $PUs$.  Third, for each $PU$, each interval is assigned to a thread. The lengths of intervals are different and this can further creates different workload among different threads when accumulating statistics when computing $LRT$.\\
 
-To overcome these drawbacks and to fully utilize the parallel unit, Non-Overlapping Enumeration parallel strategy and pre-computing strategy are proposed in the following to enable $LRT$ computation of all of intervals by each parallel unit.  
+To overcome these drawbacks and to fully utilize the parallel unit, Non-Overlapping Enumeration parallel strategy and pre-computing strategy are proposed in the following to enable $LRT$ computation of all of intervals by each parallel unit.
 
 % BFS: Explain in more detail what Honer scheme is.
-Moreover, Horner scheme is used to allocate certain interval to certain $PU$.
+Moreover, Horner scheme is used to allocate certain interval to certain $PU$. Horner scheme is a method for obtaining the incomplete fraction and the remainder in the division of a polynomial $f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}. In one-dimension grid, for each $PU_y$, we can denote $y=ax+b$, where $y \in (0,{\frac{n \cdot (n+1)}{2}})$, $x \in(0,n)$. Furthermore, the Quotient-Remainder theorem shows that for every pair of integers $(y,x)$ where $x\neq 0$, there exists unique integers $(a,b)$ such that $y=ax+b$ and $0\leq b < x$. Therefore, for each point $(x,y)$, there is one-to-one mapping $(a,b)$.
 
 \item \emph{Non-Overlapping Enumeration parallel strategy:}
 If we map each interval $l_{i,j}$ as a point $(i,j)$ and plot these points onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the $10$ intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals is the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by this product: $[width,height]=[n+1,{\frac{n}{2}}]$. In this example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle $R_1$ and it has the exact same number of points as the formed triangular shape $R_2$. Therefore, each point in this rectangle can be mapped to one point in the triangle space. This means each interval in the one-dimensional grid has one-to-one mapping from triangular space to rectangular space (Please see Table ~\ref{ex-nonoverlap})\\
@@ -275,9 +275,9 @@ From Equation ~\ref{EQ:precomp}, we can see that a query time of $\bigo(1)$ can 
 This pre-computation scheme has been implemented in~\cite{apweb} and we will give more details and related algorithms in this paper.
 
 \section {Range Mapping Scheme} \label{RMS}
-In this section, we study how parallelism helps to enumerate all of the rectangular regions (R) in a spatial grid (G). We first explain one-dimensional, two-dimensional, and $k$-dimensional data-grids.
+In this section, we study how parallelism helps to enumerate all of the rectangular regions (R) in a spatial grid (G). We will explain this scheme in one-dimensional, two-dimensional, and $k$-dimensional data-grids.
 
-From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n$ data points, denoted as $l_{(i,j)}$, are plotted onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PU) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.\\
+From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n$ data points, denoted as $l_{(i,j)}$, are plotted as point $(i,j)$ onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PU) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.\\
 Figure~\ref{trans:subfig1} plots out all of the intervals $l_{(i,j)}$ in two-dimensional space and we can see that these points $(i,j)$ forms a triangle. Figure~\ref{trans:subfig2} shows the rectangular-shaped space after transformation.
 
 \begin{figure}[h]
@@ -293,22 +293,21 @@ Figure~\ref{trans:subfig1} plots out all of the intervals $l_{(i,j)}$ in two-dim
 \caption{1-d Interval Transformation from $[n,n]$ to $[(n+1)/2,n]$}\label{modelBF}
 \end{figure}
 
-If an interval index is given, Horner scheme~\cite{horner} can be applied to generate unique index in desired dimension. For example, given an interval x, where x is integer number $(0 \leq x \leq n)$, to transform x to 2-dimentional value (i,j), we can use horner scheme: $i=x/n$ and $j= x \mod n$.   Then transformation can be done to map current index (i,j) to the index in different shaped space. We give details in the following:
-\subsection{One-Dimensional Mapping}
-First, we consider the one-dimensional range mapping scheme. We assume there are $n$ data points.\\
+To assign an interval $l_(i,j)$ to a $PU_y$, Horner scheme discussed above is applied~\cite{horner}. For example, we can compute: $i=x/n$ and $j= x \mod n$, where    $y \in (0,{\frac{n \cdot (n+1)}{2}})$, $x \in(0,n)$. Then transform $(i,j)$ from rectangular space to $(i',j')$  to triangle space. We give details in the following:
 
-\noindent There are two cases for the range mapping in one-dimensional grid: (1) The grid size $n$ is even (2) The grid size $n$ is odd. \\
+\subsection{One-Dimensional Mapping}
+For one-dimensional range mapping scheme, we assume there are $n$ data points,therefore having ${\frac{n \cdot (n+1)}{2}}$ intervals. There are two cases for the range mapping in one-dimensional grid: (1) The grid size $n$ is even (2) The grid size $n$ is odd. \\
 
 Given the following information:
 \begin{eqnarray}
-& N = \{0..n-1\}               & \\
-& R = \{0..\lfloor \frac{n+1}{2}\rfloor -1\} \times \{0..n\}     &\\
-& T = \{(i,j) \in  N^2 | i<=j\}   &\\
-& M = \{0.. \lfloor \frac{n+1}{2}\rfloor \times (n+1)-1\}  &\\
+& N = \{0,...,n-1\}               & \\
+& R = \{0,...,\lfloor \frac{n+1}{2}\rfloor -1\} \times \{0..n\}     &\\
+& T = \{(i,j) \in  n^2 | i<=j\}   &\\
+& M = \{0,..., \lfloor \frac{n+1}{2}\rfloor \times (n+1)-1\}  &\\
 \end{eqnarray}
-where  $ N$ is the number of data points, $ R$ forms rectangular space , $ T$ forms triangular space  and $ M$ is number of total intervals.\\
+where  $ N$ is the number of data points, $ R$ is the formed rectangular space , $ T$ is the formed triangular space  and $ M$ is number of total intervals for computing $LRT$.\\
 
-\noindent \textbf{\textit{The grid size $n$ is even:}} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms  $x\in  M$ to a pair in $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the pair $(i,j)\in  R$ to a pair $(i',j')\in  T$ in triangular space.\\
+\noindent \textbf{\textit{(1) The grid size $n$ is even:}} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms  $x\in  M$ to a pair in $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the pair $(i,j)\in  R$ to a pair $(i',j')\in  T$ in triangular space.\\
 \noindent\begin{definition}
 Mapping Function
 \begin{flalign*}
@@ -354,7 +353,7 @@ The function $\phi_2:   R \rightarrow  T,x \mapsto (i,j)$ is bijective.
 The function $\phi:   M   R \rightarrow  T,x \mapsto (i,j)$ is bijective.
 \end{corollary}
 \vspace{5mm}
-\noindent \textbf{\textit{The grid size $n$ is odd:}} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms a coordinate index $x\in  M$ to a pair in $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the rectangular pair $(i,j)\in  R$ to a pair $(c,d)\in  T$ in triangular space.
+\noindent \textbf{\textit{(2) The grid size $n$ is odd:}} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms a coordinate index $x\in  M$ to a pair in $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the rectangular pair $(i,j)\in  R$ to a pair $(c,d)\in  T$ in triangular space.
 \vspace{5mm}
 \noindent\begin{definition}
 Mapping Function
