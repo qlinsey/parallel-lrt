@@ -149,7 +149,7 @@ There are few drawbacks of this approach: First,  non-continuous intervals canno
 To overcome these drawbacks and to fully utilize the parallel unit, Non-Overlapping Enumeration parallel strategy and pre-computing strategy are proposed in the following to enable $LRT$ computation of all of intervals by each parallel unit.
 
 % BFS: Explain in more detail what Honer scheme is.
-Moreover, Horner scheme is used to allocate certain interval to certain $PU$. Horner scheme is a method for obtaining the incomplete fraction and the remainder in the division of a polynomial $f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}. In one-dimension grid, for each $PU_y$, we can denote $y=ax+b$, where $y \in (0,{\frac{n \cdot (n+1)}{2}})$, $x \in(0,n)$. Furthermore, the Quotient-Remainder theorem shows that for every pair of integers $(y,x)$ where $x\neq 0$, there exists unique integers $(a,b)$ such that $y=ax+b$ and $0\leq b < x$. Therefore, for each point $(x,y)$, there is one-to-one mapping $(a,b)$.
+Moreover, Horner scheme is used to allocate certain interval to certain $PU$. Horner scheme is a method for obtaining the incomplete fraction and the remainder in the division of a polynomial $f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}. Furthermore, the Quotient-Remainder theorem shows that for giving any integer $y$ and positive integer $x$, there exist unique integers $q$ and $r$ such that $y=d\times x+r$ and $0\leq r < x$. Therefore, for a certain $PU_y$, a corresponding point $(i,j)$ can be obtained by: $i= y /x$ and $j=y mod x$.
 
 \item \emph{Non-Overlapping Enumeration parallel strategy:}
 If we map each interval $l_{i,j}$ as a point $(i,j)$ and plot these points onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the $10$ intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals is the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by this product: $[width,height]=[n+1,{\frac{n}{2}}]$. In this example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle $R_1$ and it has the exact same number of points as the formed triangular shape $R_2$. Therefore, each point in this rectangle can be mapped to one point in the triangle space. This means each interval in the one-dimensional grid has one-to-one mapping from triangular space to rectangular space (Please see Table ~\ref{ex-nonoverlap})\\
@@ -262,11 +262,11 @@ Consider Figure~\ref{fig:example}(a) showing a rectangular area $R$ embedded in 
 
  By applying De Morgan's law and inclusion/exclusion principle, the query of counting the number of elements of region $R(i_1,j_1,i_2,j_2)$, where $(i_1,j_1)$ is the upper left corner and $(i_2,j_2)$ is the lower right corner is expressed by (see Proof in appendix):
 
-\small
+
 \begin{equation}
 \label{EQ:precomp}
 \begin{split}
-|R(x_1,y_1,x_2,y_2)|& = |A(x_2,y_2)| + |B(x_1,y_1)| + |X(x_1,y_2)| \\& \quad + |Y(x_2,y_1)| - |G|
+|R(x_1,y_1,x_2,y_2)|& = |A(x_2,y_2)| + |B(x_1,y_1)| + |X(x_1,y_2)|  + |Y(x_2,y_1)| - |G|
 \end{split}
 \end{equation}
 \normalsize
@@ -293,84 +293,94 @@ Figure~\ref{trans:subfig1} plots out all of the intervals $l_{(i,j)}$ in two-dim
 \caption{1-d Interval Transformation from $[n,n]$ to $[(n+1)/2,n]$}\label{modelBF}
 \end{figure}
 
-To assign an interval $l_(i,j)$ to a $PU_y$, Horner scheme discussed above is applied~\cite{horner}. For example, we can compute: $i=x/n$ and $j= x \mod n$, where    $y \in (0,{\frac{n \cdot (n+1)}{2}})$, $x \in(0,n)$. Then transform $(i,j)$ from rectangular space to $(i',j')$  to triangle space. We give details in the following:
+To assign an interval $l_(i,j)$ to a $PU_y$, Horner scheme discussed above is applied~\cite{horner}. For example, we can compute: $i=y/n$ and $j= y \mod n$, where    $y \in (0,{\frac{n \cdot (n+1)}{2}})$, $y \in(0,n)$. Then transform $(i,j)$ from rectangular space to $(i',j')$  to triangle space. We give details in the following:
 
 \subsection{One-Dimensional Mapping}
-For one-dimensional range mapping scheme, we assume there are $n$ data points,therefore having ${\frac{n \cdot (n+1)}{2}}$ intervals. There are two cases for the range mapping in one-dimensional grid: (1) The grid size $n$ is even (2) The grid size $n$ is odd. \\
+For one-dimensional range mapping scheme, we assume there are $n$ data points, therefore having ${\frac{n \cdot (n+1)}{2}}$ intervals. There are two cases in one-dimensional grid: (1) The grid size $n$ is even (2) The grid size $n$ is odd. \\
 
 Given the following information:
 \begin{eqnarray}
 & N = \{0,...,n-1\}               & \\
-& R = \{0,...,\lfloor \frac{n+1}{2}\rfloor -1\} \times \{0..n\}     &\\
-& T = \{(i,j) \in  n^2 | i<=j\}   &\\
+& R = \{(i,j)\in 0,...,\lfloor \frac{n+1}{2}\rfloor -1\} \times \{0..n\}     &\\
+& T = \{(i',j') \in  (n,n) | i<=j\}   &\\
 & M = \{0,..., \lfloor \frac{n+1}{2}\rfloor \times (n+1)-1\}  &\\
 \end{eqnarray}
-where  $ N$ is the number of data points, $ R$ is the formed rectangular space , $ T$ is the formed triangular space  and $ M$ is number of total intervals for computing $LRT$.\\
+where  $ N$ is the set of data points which partitions one-dimensional grid to intervals and total number of these points is $n$. $ R$ is the rectangular space formed by $(\lfloor \frac{n+1}{2}\rfloor -1, n)$ and each point $(i,j)$ (i.e. interval) in this space is assigned to a certain $PU_y$. $T$ is the triangular space formed by original intervals, where each interval is $l_(i',j')$ $(0<i'<j'\leq n)$. $ M$ is total number of  intervals for computing $LRT$.\\
+ To generalize the mapping scheme when grid size $n$ is in even or odd case, we extend the calculation of total intervals from $\frac{n+1}{2} \times n$ to $\lfloor \frac{n+1}{2}\rfloor \times (n+1)$. When $n$ is even, we know $\lfloor \frac{n+1}{2}\rfloor =\frac{n}{2}$. When $n$ is odd, we know $\lfloor \frac{n+1}{2}\rfloor= \frac{n+1}{2}$. Since the number of total intervals is computed as $\frac{n+1}{2} \times n $ no matter grid size $n$ is even or odd, this generalized form calculation will have $\frac{n+1}{2}$ more intervals with enlarged set when $n$ is odd but have exact calculation when $n$ is even. \\
 
-\noindent \textbf{\textit{(1) The grid size $n$ is even:}} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms  $x\in  M$ to a pair in $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the pair $(i,j)\in  R$ to a pair $(i',j')\in  T$ in triangular space.\\
+\noindent  \emph{(1) The grid size $n$ is even:} A mapping Function $\phi:  M \rightarrow  R \rightarrow  T$  is composed of two functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms  $y\in  M$ to a pair $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the pair $(i,j)\in  R$ to a pair $(i',j')\in  T$ in triangular space.\\
 \noindent\begin{definition}
-Mapping Function
+IR Mapping Function
 \begin{flalign*}
 &&\phi_1:&   M \rightarrow  R & \\
-&&x &\mapsto (i,j)
+&&y &\mapsto (i,j)
 \end{flalign*}
- where $i  = x / (n+1)$ and $j = x \mod (n+1)$.
+ where $i  = y / (n+1)$ and $j = y \mod (n+1)$.
 \end{definition}
-In this function, $x$ is an interval index and $(i,j)$ is mapped to $x$ by applying horner scheme.
+IR (Index to rectangular) mapping function assigns a point $(i,j)$ in rectangular space $R$ to $y$ of $PU_y$  by applying inverse horner scheme, where $y\in \lfloor \frac{n+1}{2}\rfloor \times (n+1)$.  Point $(i,j)$ is computed by $i  = y / (n+1)$ and $j = y \mod (n+1)$ , where $y$ is the index of a particular $PU$ and constant value of $n$ is the total number of data points in one-dimensional grid.
  \vspace{5mm}
 \begin{lemma}
-The range of $\phi_1$ is $R$. That means: $i$ is in the range of  $\{0,...,\frac{n}{2}-1\}$ and $j$ is in the range of $\{0,...,n\}$.
+Mapping function $\phi_1$ transforms $y\in M$ to $(i,j) \in R$, where $i \in \{0,...,\frac{n}{2}-1\}$ and $j \in \{0,...,n\}$.
 \end{lemma}
+When $n$ is even, we know ${\lfloor \frac{n+1}{2}\rfloor} = \frac{n} {2}$. Since $y\in M$ and size of $M$ is equal to $ \frac{n}{2} \times n$, it is obviously seen that $i\in (0,\frac{n}{2}-1)$ when $i  = y / (n+1)$. Similarly, $j\in (0,n)$ when $j = y \mod (n+1)$.
 \vspace{5mm}
 \begin{lemma}
-The function $\phi_1:   M \rightarrow  R,x \mapsto (i,j)$ is bijective.
+Mapping function $\phi_1:   M \rightarrow  R, y \mapsto (i,j)$ is bijective.
 \end{lemma}
+ In one-dimension grid, for each $PU_y$, we can denote $y=i\times n+j$, where $y \in (0,{\frac{n \cdot (n+1)}{2}})$ and $0\leq i, j < n$. From the horner scheme and the quotient-remainder theorem , we know there is one-to-one mapping from $y$ to $(i,j)$. Correspondingly, given $(i,j)$, $y$ can be constructed as $y=i\times n+j$. Therefore, $y \mapsto (i,j)$ is bijective.
 \vspace{5mm}
 
 \begin{definition}
-Mapping Function
+RT Mapping Function
 \begin{eqnarray}
 &\phi_2:&   R \rightarrow  T  \\
-&(i,j)& \mapsto
+&(i,j)& \mapsto (i',j')=
   \begin{cases}
-   (i,i+j) & \text{if } (i+j) \leq n \\
-   (n-i-1,n-j+n-i-1) & \text{otherwise}
+   (i,i+j) & \text{if } (i+j) < n \\
+   (n-i-1,2n-i-j-1)) & \text{otherwise}
   \end{cases}
 \end{eqnarray}
 \end{definition}
-The transformation is achieved by applying two lines: $i=j$ and $i+j=n$ to divide the range space and thus map points among different shape. Figure~\ref{even:subfig1} shows the mapping.
+RT (rectangular to triangular) mapping function transforms point $(i,j)$ in rectangular space to point $(i',j')$ in triangular space shown in above equation. This transformation is achieved by satisfying the constraints: $(i,j)\in \{(0,\lfloor (n+1)/2)\} \times \{(0,n)\}$ and $0\leq i' \leq j'<n$. To fulfill this constraint, $i+j=n$ divide the rectangular space into two sub-spaces: (1) $i+j<n$, (2) $i+j\geq n$. In (1), transformed point $(i',j')$ is calculated as $(i,i+j)$ . In (2), transformed point $(i',j')$ is calculated as $(n-i-1,(n-i-1)+(n-j))$ (i.e. $(n-i-1,2n-i-j-1)$). It is clearly seen that $(i',j')$ satisfies $0\leq i' \leq j'<n$ after transformation. Figure~\ref{even:subfig1} visualizes the mapping.
 
 \vspace{5mm}
 \begin{lemma}
-The range of $\phi_2$ is $T$. That means: $i$ is in the range of  $\{0,...,\frac{n}{2}-1\}$ and $j$ is in the range of $\{0,...,n\}$.
+Mapping function $\phi_2$ transform $(i,j) \in R$ to $(i',j')\in T $, where $i' \in \{0,...,n\}$ and $j' \in \{0,...,n\}$ in triangular space.
 \end{lemma}
+It is true that $i<n$ and $n-i-1<n$. Also when $(i+j) < n$ and $j'=i+j$, we can get $i'\leq j'<n$. When $(i+j) \geq n$, we get $i'\leq j'=2n-i-j-1=(n-i)+(n-j-1)<n$. Therefore,$i' \in \{0,...,n\}$, $j' \in \{0,...,n\}$ and $i'\leq j'$.
 \vspace{5mm}
 \begin{lemma}
-The function $\phi_2:   R \rightarrow  T,x \mapsto (i,j)$ is bijective.
+Mapping function $\phi_2:   R \rightarrow  T,y \mapsto (i,j)$ is bijective.
 \end{lemma}
+From above definition, we see that each $(i,j)$ has one to one mapping to $(i',j')$. There has $i'=i, j'=i+j$ when $i+j<n$. And there has $i'=n-i-1, j'=2n-i-j-1$ when $i+j\geq n$. There is no over-lapping mapped point $(i',j')$ based on the constraint of $i+j<n$. Correspondingly,  given $(i',j')$, $(i,j)$ can be obtained by $i=i', j=j'-i'$ or $i=n-i'-1, j=i'+n-j'$. Therefore, $y \mapsto (i,j)$ is bijective.
 \vspace{5mm}
 \begin{corollary}
-The function $\phi:   M   R \rightarrow  T,x \mapsto (i,j)$ is bijective.
+The function $\phi:   M  \rightarrow R \rightarrow  T,y \mapsto (i',j')$ is bijective.
 \end{corollary}
+Since $M  \rightarrow R$ and $R \rightarrow  T$ are bijective respectively, this means $y \mapsto (i,j)$ and $(i,j) \mapsto (i',j')$ are bijective. Therefore $ M  \rightarrow R \rightarrow  T$,  $y \mapsto (i',j')$ is bijective.
 \vspace{5mm}
-\noindent \textbf{\textit{(2) The grid size $n$ is odd:}} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms a coordinate index $x\in  M$ to a pair in $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the rectangular pair $(i,j)\in  R$ to a pair $(c,d)\in  T$ in triangular space.
+
+\noindent \emph{(2) The grid size $n$ is odd:} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms $y\in  M$ to a pair $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms  $(i,j)\in  R$ to a pair $(i',j')\in  T$ in triangular space.
 \vspace{5mm}
 \noindent\begin{definition}
-Mapping Function
+IR Mapping Function
 \begin{eqnarray}
 \phi_1:   M \rightarrow  R & \\
-x \mapsto (i,j)
+y \mapsto (i,j)
 \end{eqnarray}
- where  $i  = x / (n+1)$ and $j = x \mod (n+1)$.
+ where  $i  = y / (n+1)$ and $j = y \mod (n+1)$.\\
+ IR (Index to rectangular) mapping function assigns a point $(i,j)$ in rectangular space $R$ to $y$ of $PU_y$  by applying inverse horner scheme, where $y\in \lfloor \frac{n+1}{2}\rfloor \times (n+1)$.  Point $(i,j)$ is computed by $i  = y / (n+1)$ and $j = y \mod (n+1)$ , where $y$ is the index of a particular $PU$ and constant value of $n$ is the total number of data points in one-dimensional grid. Since $n$ is odd in this case, there has $\frac{n+1}{2}$ more data points (intervals) than total number of intervals and they  won't be processed.
 \end{definition}
  \vspace{5mm}
 \begin{lemma}
-The range of $\phi_1$ is $R$. That means: $i$ is in the range of  $\{0,...,\frac{n+1}{2}-1\}$ and $j$ is in the range of $\{0,...,n\}$.
+Mapping function $\phi_1$ transforms $y\in M$ to $(i,j) \in R$, where $i \in \{0,...,\frac{n+1}{2}-1\}$ and $j \in \{0,...,n\}$.
 \end{lemma}
+When $n$ is odd, we know $ {\lfloor \frac{n+1}{2}\rfloor} = {\frac{n+1}{2}}$.  Since $y\in M$ and size of $M$ is extend to $  \frac{n+1}{2} \times (n+1)$ , we can derive that $i\in \{0,...,\frac{n+1}{2}-1\}$ when $i  = y / (n+1)$. Similarly, $j\in (0,n)$ when $j = y \mod (n+1)$.
 \vspace{5mm}
 \begin{lemma}
-The function $\phi_1:   M \rightarrow  R,x \mapsto (i,j)$ is bijective.
+Mapping function $\phi_1:   M \rightarrow  R,y \mapsto (i,j)$ is bijective.
 \end{lemma}
+ In one-dimension grid, for each $PU_y$, we can denote $y=i\times (n+1)+j$, where $y \in (0,{\frac{(n+1) \cdot (n+1)}{2}})$ and $0\leq i, j < n$. From the horner scheme and the quotient-remainder theorem , we know there is one-to-one mapping from $y$ to $(i,j)$. Correspondingly, given $(i,j)$, $y$ can be constructed as $y=i\times (n+1)+j$. Therefore, $y \mapsto (i,j)$ is bijective. 
 \vspace{5mm}
 \begin{definition}
 Mapping Function
@@ -378,25 +388,27 @@ Mapping Function
 &\phi_2:& R\rightarrow T\\
 &(i,j)&\mapsto
   \begin{cases}
-   (i,i+j) &\text {if } (i+j) \leq n \\
-   (n-i-1,n-j+n-i-1) & \text {if}(i+1) \leq \frac{(n+1)}{2}
+   (i,i+j) &\text {if } (i+j) < n \\
+   (n-i-1,2n-i-j-1) & \text {if}(i+1) \leq \frac{(n+1)}{2}
   \end{cases}
 \end{eqnarray}
 \end{definition}
-The transformation is achieved by applying two lines: $i=j$ and $i+j=n$ to divide the range space and thus map points among different shape. Since $n$ is odd, the rectangular shape is enlarged and a straight line $i= \frac{(n+1)}{2}-1$ is used to limit the number of points to triangle shape. Figure~\ref{odd:subfig1} shows the mapping.
+RT (rectangular to triangular) mapping function transforms point $(i,j)$ in rectangular space to point $(i',j')$ in triangular space shown in above equation. This transformation is achieved by satisfying the constraints: $(i,j)\in \{(0,\lfloor (n+1)/2)\} \times \{(0,n+1)\}$ and $0\leq i' \leq j'<n$. To fulfill this constraint, $i+j=n$ divide the rectangular space into two sub-spaces: (1) $i+j<n$, (2) $i+j\geq n$. Furthermore, when $n$ is odd, we have $\frac{(n+1)}{2}$ more points than needed and thus the rectangular shape is enlarged, the constraint of $(i+1) \leq \frac{(n+1)}{2}$ is applied to limit the unnecessary transformation of points in rectangular space to triangular space. In (1), transformed point $(i',j')$ is calculated as $(i,i+j)$ . In (2), transformed point $(i',j')$ is calculated as $(n-i-1,(n-i-1)+(n-j))$ (i.e. $(n-i-1,2n-i-j-1)$). This mapping strategy shows that $(i',j')$ satisfies $0\leq i' \leq j'<n$ after transformation. Figure~\ref{odd:subfig1} visualizes the mapping.
 \vspace{5mm}
 \begin{lemma}
-The range of $\phi_2$ is $T$. That means: $i$ is in the range of  $\{0,...,\frac{n}{2}-1\}$ and $j$ is in the range of $\{0,...,n\}$.
+Mapping function $\phi_2:   R \rightarrow  T$ transform $(i,j) \in R$ to $(i',j')\in T $, where $i' \in \{0,...,n\}$ and $j' \in \{0,...,n\}$ in triangular space.
 \end{lemma}
+It is true that $i<n$ and $n-i-1<n$. Also when $(i+j) < n$ and $j'=i+j$, we can get $i'\leq j'<n$. When $(i+j) \geq n$, we get $i'\leq j'=2n-i-j-1=(n-i)+(n-j-1)<n$. Moreover, the constraint of $(i+1) \leq \frac{(n+1)}{2}$ is applied to limit the unnecessary transformation of points when $n$ is odd. Therefore,$i' \in \{0,...,n\}$, $j' \in \{0,...,n\}$ and $i'\leq j'$ in triangular space.
 \vspace{5mm}
 \begin{lemma}
-The function $\phi_2:   R \rightarrow  T,x \mapsto (i,j)$ is surjective.
+Mapping function $\phi_2:   R \rightarrow  T, (i,j) \mapsto (i',j')$ is injective.
 \end{lemma}
+From above mapping strategy, we see that each $(i',j')$ has single mapping to $(i,j)$ and some unnecessary $(i,j)$ are not processed due to $R$ is enlarged. There has $i'=i, j'=i+j$ when $i+j<n$. And there has $i'=n-i-1, j'=2n-i-j-1$ when $i+j\geq n$. There is no over-lapping mapped point $(i',j')$ based on the constraint of $i+j<n$ and  $(i+1) \leq \frac{(n+1)}{2}$. Correspondingly, given $(i',j')$, $(i,j)$ can be obtained by $i=i', j=j'-i'$ or $i=n-i'-1, j=i'+n-j'$. However, due to $R$ is enlarged space , $(i,j) \mapsto (i',j')$ is injective when $n$ is odd.
 \vspace{5mm}
 \begin{corollary}
-The function $\phi:   M  R \rightarrow  T,x \mapsto (i,j)$ is surjective.
+Mapping function $\phi:   M \rightarrow R \rightarrow  T,y \mapsto (i',j')$ is injective.
 \end{corollary}
-
+From above, we know $M  \rightarrow R$ (i.e. $y \mapsto (i,j)$) is bijective and $R \rightarrow  T$ (i.e. $(i,j) \mapsto (i',j')$) is injective. Therefore $ M  \rightarrow R \rightarrow  T$,  $y \mapsto (i',j')$ is injective.
 
 Figure~\ref{even:subfig1} and Figure~\ref{odd:subfig1} show the solutions and implementation is shown in Algorithm~\ref{RM}.
 
