@@ -48,7 +48,7 @@ In this paper, we propose a parallel processing scheme for LRT computations for 
 In the experiments we could achieve speedups up to $20,000$ times using our parallel processing scheme on Grid $(1000,1000)$.
 }
 
-\keywords{Spatial outlier, Likelihood Ratio Test, one parameter exponential distribution, Inclusive/Exclusive Principle, GPGPUs, Multi-core, EC2 Cloud Cluster}
+\keywords{Spatial outlier, Likelihood Ratio Test Statistics, one parameter exponential distribution, Inclusive/Exclusive Principle, GPGPUs, Multi-core, EC2 Cloud Cluster}
 
 \jnlcitation{\cname{%
 \author{Williams K.},
@@ -301,14 +301,14 @@ For one-dimensional range mapping scheme, we assume there are $n$ data points, t
 Given the following information:
 \begin{eqnarray}
 & N = \{0,...,n-1\}               & \\
-& R = \{(i,j)\in 0,...,\lfloor \frac{n+1}{2}\rfloor -1\} \times \{0..n\}     &\\
-& T = \{(i',j') \in  (n,n) | i<=j\}   &\\
-& M = \{0,..., \lfloor \frac{n+1}{2}\rfloor \times (n+1)-1\}  &\\
+& R = \{(i,j)\in [0,...,\lfloor \frac{n+1}{2}\rfloor -1] \times [0,...,n]\}     &\\
+& T = \{(i',j') \in [0,...,n] \times [0,...,n] | i'<=j'\}   &\\
+& M = \{0,..., \lfloor \frac{n+1}{2}\rfloor \cdot (n+1)-1\}  &\\
 \end{eqnarray}
-where  $ N$ is the set of data points which partitions one-dimensional grid to intervals and total number of these points is $n$. $ R$ is the rectangular space formed by $(\lfloor \frac{n+1}{2}\rfloor -1, n)$ and each point $(i,j)$ (i.e. interval) in this space is assigned to a certain $PU_y$. $T$ is the triangular space formed by original intervals, where each interval is $l_(i',j')$ $(0<i'<j'\leq n)$. $ M$ is total number of  intervals for computing $LRT$.\\
- To generalize the mapping scheme when grid size $n$ is in even or odd case, we extend the calculation of total intervals from $\frac{n+1}{2} \times n$ to $\lfloor \frac{n+1}{2}\rfloor \times (n+1)$. When $n$ is even, we know $\lfloor \frac{n+1}{2}\rfloor =\frac{n}{2}$. When $n$ is odd, we know $\lfloor \frac{n+1}{2}\rfloor= \frac{n+1}{2}$. Since the number of total intervals is computed as $\frac{n+1}{2} \times n $ no matter grid size $n$ is even or odd, this generalized form calculation will have $\frac{n+1}{2}$ more intervals with enlarged set when $n$ is odd but have exact calculation when $n$ is even. \\
+where  $ N$ is the set of data points which partitions one-dimensional grid to intervals and total number of these points is $n$. $ R$ is the rectangular space formed by $\{[0,...,\lfloor \frac{n+1}{2}\rfloor -1]\times [0,...,n]\}$ and each point $(i,j)$ (i.e. interval) in this space is assigned to a certain $PU_y$. $T$ is the triangular space formed by original intervals, where each interval is $l_(i',j')$ $(0<i'<j'\leq n)$. $ M$ is total number of  intervals for computing $LRT$.\\
+ To have a generalized form of the mapping scheme when grid size $n$ is even or odd , we extend the calculation of total intervals from $\frac{n+1}{2} \cdot n$ to $\lfloor \frac{n+1}{2}\rfloor \cdot (n+1)$. When $n$ is even, we know $\lfloor \frac{n+1}{2}\rfloor =\frac{n}{2}$. When $n$ is odd, we know $\lfloor \frac{n+1}{2}\rfloor= \frac{n+1}{2}$. The generalized computation of number of total intervals in our range mapping scheme is $\frac{n+1}{2} \cdot (n+1) $ no matter grid size $n$ is even or odd, this produces $\frac{n+1}{2}$ more intervals with enlarged set when $n$ is odd but have exact calculation when $n$ is even. \\
 
-\noindent  \emph{(1) The grid size $n$ is even:} A mapping Function $\phi:  M \rightarrow  R \rightarrow  T$  is composed of two functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms  $y\in  M$ to a pair $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the pair $(i,j)\in  R$ to a pair $(i',j')\in  T$ in triangular space.\\
+\noindent   \textbf{\emph{(1) The grid size $n$ is even:}} A mapping Function $\phi:  M \rightarrow  R \rightarrow  T$  is composed of two functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms the index value of $y\in  M$ of a certain $PU_y$ to a pair $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the pair $(i,j)\in  R$ from rectangular space to a pair $(i',j')\in  T$ to triangular space.\\
 \noindent\begin{definition}
 IR Mapping Function
 \begin{flalign*}
@@ -317,17 +317,17 @@ IR Mapping Function
 \end{flalign*}
  where $i  = y / (n+1)$ and $j = y \mod (n+1)$.
 \end{definition}
-IR (Index to rectangular) mapping function assigns a point $(i,j)$ in rectangular space $R$ to $y$ of $PU_y$  by applying inverse horner scheme, where $y\in \lfloor \frac{n+1}{2}\rfloor \times (n+1)$.  Point $(i,j)$ is computed by $i  = y / (n+1)$ and $j = y \mod (n+1)$ , where $y$ is the index of a particular $PU$ and constant value of $n$ is the total number of data points in one-dimensional grid.
+IR (Index to rectangular) mapping function assigns a point $(i,j)$ in rectangular space $R$ to $y$ of $PU_y$  by applying inverse horner scheme, where $y\in \{0,...,\lfloor \frac{n+1}{2}\rfloor \cdot (n+1)-1\}$.  Point $(i,j)$ is computed by $i  = y / (n+1)$ and $j = y \mod (n+1)$ , where $y$ is the index of a particular $PU$ and constant value of $n$ is the total number of data points in one-dimensional grid.
  \vspace{5mm}
 \begin{lemma}
-Mapping function $\phi_1$ transforms $y\in M$ to $(i,j) \in R$, where $i \in \{0,...,\frac{n}{2}-1\}$ and $j \in \{0,...,n\}$.
+Mapping function $\phi_1$ transforms $y\in M$ (i.e. $y\in \{0,...,\lfloor \frac{n+1}{2}\rfloor \cdot n\}$) to $(i,j) \in R$, where $i \in \{0,...,\frac{n}{2}-1\}$ and $j \in \{0,...,n\}$.
 \end{lemma}
-When $n$ is even, we know ${\lfloor \frac{n+1}{2}\rfloor} = \frac{n} {2}$. Since $y\in M$ and size of $M$ is equal to $ \frac{n}{2} \times n$, it is obviously seen that $i\in (0,\frac{n}{2}-1)$ when $i  = y / (n+1)$. Similarly, $j\in (0,n)$ when $j = y \mod (n+1)$.
+When $n$ is even, we know ${\lfloor \frac{n+1}{2}\rfloor} = \frac{n} {2}$. Since $y\in M$ and size of $M$ is equal to $ \frac{n}{2} \cdot n$, it is obviously seen that $i\in \{0,...,\frac{n}{2}-1\}$ when $i  = y / (n+1)$. Similarly, $j\in \{0,...,n\}$ when $j = y \mod (n+1)$.
 \vspace{5mm}
 \begin{lemma}
 Mapping function $\phi_1:   M \rightarrow  R, y \mapsto (i,j)$ is bijective.
 \end{lemma}
- In one-dimension grid, for each $PU_y$, we can denote $y=i\times n+j$, where $y \in (0,{\frac{n \cdot (n+1)}{2}})$ and $0\leq i, j < n$. From the horner scheme and the quotient-remainder theorem , we know there is one-to-one mapping from $y$ to $(i,j)$. Correspondingly, given $(i,j)$, $y$ can be constructed as $y=i\times n+j$. Therefore, $y \mapsto (i,j)$ is bijective.
+ In one-dimension grid, for each $PU_y$, we can denote $y=i\cdot n+j$, where $y \in \{0,...,{\frac{n \cdot (n+1)}{2}}\}$ and $0\leq i, j < n$. From the horner scheme and the quotient-remainder theorem , we know lemma 1 produces one-to-one mapping from $y$ to $(i,j)$. At the same time, given $(i,j)$, $y$ can be uniquely constructed as $y=i\cdot n+j$. Therefore, $y \mapsto (i,j)$ is bijective.
 \vspace{5mm}
 
 \begin{definition}
@@ -341,18 +341,18 @@ RT Mapping Function
   \end{cases}
 \end{eqnarray}
 \end{definition}
-RT (rectangular to triangular) mapping function transforms point $(i,j)$ in rectangular space to point $(i',j')$ in triangular space shown in above equation. This transformation is achieved by satisfying the constraints: $(i,j)\in \{(0,\lfloor (n+1)/2)\} \times \{(0,n)\}$ and $0\leq i' \leq j'<n$. To fulfill this constraint, $i+j=n$ divide the rectangular space into two sub-spaces: (1) $i+j<n$, (2) $i+j\geq n$. In (1), transformed point $(i',j')$ is calculated as $(i,i+j)$ . In (2), transformed point $(i',j')$ is calculated as $(n-i-1,(n-i-1)+(n-j))$ (i.e. $(n-i-1,2n-i-j-1)$). It is clearly seen that $(i',j')$ satisfies $0\leq i' \leq j'<n$ after transformation. Figure~\ref{even:subfig1} visualizes the mapping.
+RT (rectangular to triangular) mapping function transforms point $(i,j)$ in rectangular space to point $(i',j')$ in triangular space shown in above equation. This transformation is achieved by satisfying the constraints: $(i,j)\in \{[0,...,\lfloor (n+1)/2] \times [0,...,n]\}$ and $0\leq i' \leq j'<n$. To fulfill this constraint, line $i+j=n$ divide the rectangular space into two sub-spaces: (a) $i+j<n$, (b) $i+j\geq n$. In (a), transformed point $(i',j')$ is calculated as $(i,i+j)$ . In (b), transformed point $(i',j')$ is calculated as $(n-i-1,(n-i-1)+(n-j))$ (i.e. $(n-i-1,2n-i-j-1)$). It is clearly seen that $(i',j')$ satisfies $0\leq i' \leq j'<n$ after transformation. Figure~\ref{even:subfig1} visualizes the mapping.
 
 \vspace{5mm}
 \begin{lemma}
-Mapping function $\phi_2$ transform $(i,j) \in R$ to $(i',j')\in T $, where $i' \in \{0,...,n\}$ and $j' \in \{0,...,n\}$ in triangular space.
+Mapping function $\phi_2$ transform $(i,j) \in R$ to $(i',j')\in T $, where $i' \in \{0,...,n\}$ and $j' \in \{0,...,n\}$.
 \end{lemma}
 It is true that $i<n$ and $n-i-1<n$. Also when $(i+j) < n$ and $j'=i+j$, we can get $i'\leq j'<n$. When $(i+j) \geq n$, we get $i'\leq j'=2n-i-j-1=(n-i)+(n-j-1)<n$. Therefore,$i' \in \{0,...,n\}$, $j' \in \{0,...,n\}$ and $i'\leq j'$.
 \vspace{5mm}
 \begin{lemma}
 Mapping function $\phi_2:   R \rightarrow  T,y \mapsto (i,j)$ is bijective.
 \end{lemma}
-From above definition, we see that each $(i,j)$ has one to one mapping to $(i',j')$. There has $i'=i, j'=i+j$ when $i+j<n$. And there has $i'=n-i-1, j'=2n-i-j-1$ when $i+j\geq n$. There is no over-lapping mapped point $(i',j')$ based on the constraint of $i+j<n$. Correspondingly,  given $(i',j')$, $(i,j)$ can be obtained by $i=i', j=j'-i'$ or $i=n-i'-1, j=i'+n-j'$. Therefore, $y \mapsto (i,j)$ is bijective.
+From above definition, we see that each $(i,j)$ uniquely maps to $(i',j')$. We get $i'=i, j'=i+j$ when $i+j<n$. And we get $i'=n-i-1, j'=2n-i-j-1$ when $i+j\geq n$. Correspondingly,  given $(i',j')$, $(i,j)$ can be uniquely obtained by $i=i', j=j'-i'$ or $i=n-i'-1, j=i'+n-j'$. Therefore, $y \mapsto (i,j)$ is bijective.
 \vspace{5mm}
 \begin{corollary}
 The function $\phi:   M  \rightarrow R \rightarrow  T,y \mapsto (i',j')$ is bijective.
@@ -360,7 +360,7 @@ The function $\phi:   M  \rightarrow R \rightarrow  T,y \mapsto (i',j')$ is bije
 Since $M  \rightarrow R$ and $R \rightarrow  T$ are bijective respectively, this means $y \mapsto (i,j)$ and $(i,j) \mapsto (i',j')$ are bijective. Therefore $ M  \rightarrow R \rightarrow  T$,  $y \mapsto (i',j')$ is bijective.
 \vspace{5mm}
 
-\noindent \emph{(2) The grid size $n$ is odd:} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms $y\in  M$ to a pair $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms  $(i,j)\in  R$ to a pair $(i',j')\in  T$ in triangular space.
+\noindent \textbf{\emph {(2) The grid size $n$ is odd:}} Function $\phi:  M \rightarrow  R \rightarrow  T$ is composed of two mapping functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms the index value of $y\in  M$ of a certain $PU_y$ to a pair $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms  $(i,j)\in  R$ from rectangular space to a pair $(i',j')\in  T$ in triangular space.
 \vspace{5mm}
 \noindent\begin{definition}
 IR Mapping Function
@@ -369,31 +369,31 @@ IR Mapping Function
 y \mapsto (i,j)
 \end{eqnarray}
  where  $i  = y / (n+1)$ and $j = y \mod (n+1)$.\\
- IR (Index to rectangular) mapping function assigns a point $(i,j)$ in rectangular space $R$ to $y$ of $PU_y$  by applying inverse horner scheme, where $y\in \lfloor \frac{n+1}{2}\rfloor \times (n+1)$.  Point $(i,j)$ is computed by $i  = y / (n+1)$ and $j = y \mod (n+1)$ , where $y$ is the index of a particular $PU$ and constant value of $n$ is the total number of data points in one-dimensional grid. Since $n$ is odd in this case, there has $\frac{n+1}{2}$ more data points (intervals) than total number of intervals and they  won't be processed.
+ IR (Index to rectangular) mapping function assigns a point $(i,j)$ in rectangular space $R$ to $y$ of $PU_y$  by applying inverse horner scheme, where $y\in \{0,...,\lfloor \frac{n+1}{2}\rfloor \cdot (n+1)-1\}$.  Point $(i,j)$ is computed by $i  = y / (n+1)$ and $j = y \mod (n+1)$ , where $y$ is the index of a particular $PU$ and constant value of $n$ is the total number of data points in one-dimensional grid. Since $n$ is odd in this case, there has $\frac{n+1}{2}$ more data points (intervals) in the extended form than the original total number of intervals and they  won't be processed.
 \end{definition}
  \vspace{5mm}
 \begin{lemma}
 Mapping function $\phi_1$ transforms $y\in M$ to $(i,j) \in R$, where $i \in \{0,...,\frac{n+1}{2}-1\}$ and $j \in \{0,...,n\}$.
 \end{lemma}
-When $n$ is odd, we know $ {\lfloor \frac{n+1}{2}\rfloor} = {\frac{n+1}{2}}$.  Since $y\in M$ and size of $M$ is extend to $  \frac{n+1}{2} \times (n+1)$ , we can derive that $i\in \{0,...,\frac{n+1}{2}-1\}$ when $i  = y / (n+1)$. Similarly, $j\in (0,n)$ when $j = y \mod (n+1)$.
+When $n$ is odd, we know $ {\lfloor \frac{n+1}{2}\rfloor} = {\frac{n+1}{2}}$.  Since $y\in M$ and size of $M$ is extend to $  \frac{n+1}{2} \cdot (n+1)$ , we can derive that $i\in \{0,...,\frac{n+1}{2}-1\}$ when $i  = y / (n+1)$. Similarly, $j\in (0,n)$ when $j = y \mod (n+1)$.
 \vspace{5mm}
 \begin{lemma}
 Mapping function $\phi_1:   M \rightarrow  R,y \mapsto (i,j)$ is bijective.
 \end{lemma}
- In one-dimension grid, for each $PU_y$, we can denote $y=i\times (n+1)+j$, where $y \in (0,{\frac{(n+1) \cdot (n+1)}{2}})$ and $0\leq i, j < n$. From the horner scheme and the quotient-remainder theorem , we know there is one-to-one mapping from $y$ to $(i,j)$. Correspondingly, given $(i,j)$, $y$ can be constructed as $y=i\times (n+1)+j$. Therefore, $y \mapsto (i,j)$ is bijective. 
+ In one-dimension grid, for each $PU_y$, we can denote $y=i\cdot (n+1)+j$, where $y \in (0,{\frac{(n+1) \cdot (n+1)}{2}})$ and $0\leq i, j < n$. From the horner scheme and the quotient-remainder theorem , we know there is unique mapping from $y$ to $(i,j)$. Correspondingly, given $(i,j)$, $y$ can be uniquely constructed as $y=i\cdot (n+1)+j$. Therefore, $y \mapsto (i,j)$ is bijective.
 \vspace{5mm}
 \begin{definition}
 Mapping Function
 \begin{eqnarray}
 &\phi_2:& R\rightarrow T\\
-&(i,j)&\mapsto
+&(i,j)&\mapsto (i',j')=
   \begin{cases}
    (i,i+j) &\text {if } (i+j) < n \\
    (n-i-1,2n-i-j-1) & \text {if}(i+1) \leq \frac{(n+1)}{2}
   \end{cases}
 \end{eqnarray}
 \end{definition}
-RT (rectangular to triangular) mapping function transforms point $(i,j)$ in rectangular space to point $(i',j')$ in triangular space shown in above equation. This transformation is achieved by satisfying the constraints: $(i,j)\in \{(0,\lfloor (n+1)/2)\} \times \{(0,n+1)\}$ and $0\leq i' \leq j'<n$. To fulfill this constraint, $i+j=n$ divide the rectangular space into two sub-spaces: (1) $i+j<n$, (2) $i+j\geq n$. Furthermore, when $n$ is odd, we have $\frac{(n+1)}{2}$ more points than needed and thus the rectangular shape is enlarged, the constraint of $(i+1) \leq \frac{(n+1)}{2}$ is applied to limit the unnecessary transformation of points in rectangular space to triangular space. In (1), transformed point $(i',j')$ is calculated as $(i,i+j)$ . In (2), transformed point $(i',j')$ is calculated as $(n-i-1,(n-i-1)+(n-j))$ (i.e. $(n-i-1,2n-i-j-1)$). This mapping strategy shows that $(i',j')$ satisfies $0\leq i' \leq j'<n$ after transformation. Figure~\ref{odd:subfig1} visualizes the mapping.
+RT (rectangular to triangular) mapping function transforms point $(i,j)$ in rectangular space to point $(i',j')$ in triangular space shown in above equation. This transformation is achieved by satisfying the constraints: $(i,j)\in \{[0,...,\lfloor (n+1)/2] \times [0,...,n+1]\}$ and $0\leq i' \leq j'<n$. To fulfill this constraint, line $i+j=n$ divide the rectangular space into two sub-spaces: (a) $i+j<n$, (b) $i+j\geq n$. Furthermore, when $n$ is odd, we have $\frac{(n+1)}{2}$ more points than needed and thus the rectangular shape is enlarged, the constraint of $(i+1) \leq \frac{(n+1)}{2}$ is applied to limit the unnecessary transformation of points in rectangular space to triangular space. To explain this, when line $i+j=n$ intersection with line $(i+1) = \frac{(n+1)}{2}$, we can get $j=n-i=n-\frac{(n+1)}{2}+1=\frac{(n+1)}{2}$. Hence when $i+j<n$, the unnecessary points above the the intersection point on the line of $(i+1) = \frac{(n+1)}{2}$ are filtered out.  In (a), transformed point $(i',j')$ is calculated as $(i,i+j)$ . In (b), transformed point $(i',j')$ is calculated as $(n-i-1,(n-i-1)+(n-j))$ (i.e. $(n-i-1,2n-i-j-1)$). This mapping strategy shows that $(i',j')$ satisfies $0\leq i' \leq j'<n$ after transformation. Figure~\ref{odd:subfig1} visualizes the mapping.
 \vspace{5mm}
 \begin{lemma}
 Mapping function $\phi_2:   R \rightarrow  T$ transform $(i,j) \in R$ to $(i',j')\in T $, where $i' \in \{0,...,n\}$ and $j' \in \{0,...,n\}$ in triangular space.
@@ -425,16 +425,16 @@ Figure~\ref{even:subfig1} and Figure~\ref{odd:subfig1} show the solutions and im
 \caption{1-d Interval Transformation from $[n,n]$ to $[\lfloor (n+1)/2 \rfloor,n+1]$}\label{modelBF}
 \end{figure}
 
-$\noindent \textit {Example:}$ To illustrate the transformation, Figure~\ref{example:subfig1} and ~\ref{example:subfig2} show small examples on how to transform the intervals when having data points $\{0,1,2,3,4\}$ and $\{0,1,2,3,4,5\}$ respectively. For data point $(i,j)\in \{0,1,2,3,4\}$, the total intervals is $10$. By plotting out all of them in Figure~\ref{example:subfig1}, the triangular shaped space is bounded by $\{(0,0), (3,3), (0,3)\}$ and there are exactly $10$ points in total. The rectangular shaped space is bounded by $\{(0,0),(1,0), (1,4),(0,4)\}$ and total number of points is exactly $10$. Similarly, for data point $(i,j)\in \{0,1,2,3,4,5\}$,  the triangular shaped space is bounded by $\{(0,0),(4,4),(0,4)\}$ and total number of points is . The rectangular shaped space is bounded by $\{(0,0),(2,0),(2,5),(0,5)\}$ and total number of points is $15$. Table~\ref{maptable} shows the transformations.
+$\noindent \textit {Example:}$ To illustrate the transformation, Figure~\ref{example:subfig1} and ~\ref{example:subfig2} show small examples on how to transform the intervals when having data points $\{0,1,2,3,4\}$ and $\{0,1,2,3,4,5\}$ respectively. For data point $(i,j)\in \{0,1,2,3,4\}$, the total intervals is $10$. By plotting out all of them in Figure~\ref{example:subfig1}, the triangular shaped space is bounded by $\{(0,0), (3,3), (0,3)\}$ and there are exactly $10$ points in total. The rectangular shaped space is bounded by $\{(0,0),(1,0), (1,4),(0,4)\}$ and total number of points is exactly $10$. Similarly, for data point $(i,j)\in \{0,1,2,3,4,5\}$,  the triangular shaped space is bounded by $\{(0,0),(4,4),(0,4)\}$ and total number of points is 15. The rectangular shaped space is bounded by $\{(0,0),(2,0),(2,5),(0,5)\}$ and total number of points is $15$. Table~\ref{maptable} shows the transformations.
 
 \begin{figure}[h]
 \centering
 \subfloat[ Grid size n =4 ]{
-\includegraphics[width=0.35\linewidth]{figtkde/exampleven}
+\includegraphics[width=0.25\linewidth]{figtkde/exampleven}
 \label{example:subfig1}
 }
 ~~\subfloat[Grid size n =5 ]{
-\includegraphics[width=0.35\linewidth]{figtkde/exampleodd}
+\includegraphics[width=0.25\linewidth]{figtkde/exampleodd}
 \label{example:subfig2}
 }
 \caption{Example: 1-d Interval Transformation}\label{example}
@@ -563,19 +563,19 @@ Similarly, the computation of set $B,X,Y$ is listed as the following:
 \begin{figure}[h]
 \centering
 \subfloat[Pre-computation of set A  ]{
-\includegraphics[width=0.4\linewidth]{figtkde/prea}
+\includegraphics[width=0.25\linewidth]{figtkde/prea}
 \label{prec:subfig1}
 }
 ~~\subfloat[Pre-computation of set B]{
-\includegraphics[width=0.4\linewidth]{figtkde/preb}
+\includegraphics[width=0.25\linewidth]{figtkde/preb}
 \label{prec:subfig2}
 }\\
 ~~\subfloat[Pre-computation of set X]{
-\includegraphics[width=0.4\linewidth]{figtkde/prex}
+\includegraphics[width=0.25\linewidth]{figtkde/prex}
 \label{prec:subfig3}
 }
 ~~\subfloat[Pre-computation of set Y]{
-\includegraphics[width=0.4\linewidth]{figtkde/prey}
+\includegraphics[width=0.25\linewidth]{figtkde/prey}
 \label{prec:subfig4}
 }
 \caption{pre-computation of set A, B, X and Y}\label{prec}
