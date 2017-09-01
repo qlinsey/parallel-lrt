@@ -40,15 +40,13 @@
 \presentaddress{This is sample for present address text this is sample for present address text}
 
 \abstract[Summary]{The Likelihood Ratio Test (LRT) is a method for identifying hotspots or anomalous rectangular regions for an spatial data grid that draws from an arbitrary distribution.  LRT has wide-spread applications from social-media applications powered by mobile phones to medical image processing applications. Unfortunately, a na\"ive implementation of LRT exhibits a worst-case time complexity of $\bigo(n^4)$ for a two-dimensional grid.
-%BFS: Please check largest grid they computed with simple method.
 For larger grids with a grid size of more than $64\times 64$ cells, a na\"ive implementation of LRT becomes intractable~\cite{jour} and it takes around several days to execute Grid(64,64) on a single-core CPU.
 
-In this paper, we propose a parallel processing scheme for LRT computations for one parameter exponential (1EXP) distribution for multi-dimensional spatial data grids. The parallel processing scheme reduces LRT computations to a completely balanced embarrassingly parallel problem utilizing a novel range mapping scheme. The new range mapping scheme relies on a dynamic pre-computation algorithm. Experiments were conducted for various computer architectures and platforms including shared-memory multi-core machines, multi-GPGPU computers, and the EC2 cloud computer. Extensive experiments are provided to demonstrate the utility of this approach and extensive performance analysis is given.
-%BFS: Mention speedups here to single-core CPU.
+In this paper, we propose a parallel processing scheme for LRT computations for one parameter exponential (1EXP) distribution for multi-dimensional spatial data grids. The parallel processing scheme transforms LRT computations to a completely balanced embarrassingly parallel problem utilising a novel range mapping scheme. The new range mapping scheme relies on a dynamic pre-computation algorithm, and exhibits a worst-case complexity of $\bigo(n^2)$  for two dimensional spatial data-grids improving the complexity class by an order of two. Experiments were conducted for various computer architectures and platforms including shared-memory multi-core machines, multi-GPGPU computers, and the EC2 cloud computer. Extensive experiments are provided to demonstrate the utility of this approach and extensive performance analysis is given.
 In the experiments we could achieve speedups up to $20,000$ times using our parallel processing scheme on Grid $(1000,1000)$.
 }
 
-\keywords{Spatial outlier, Likelihood Ratio Test Statistics, one parameter exponential distribution, Inclusive/Exclusive Principle, GPGPUs, Multi-core, EC2 Cloud Cluster}
+\keywords{Spatial outlier, Likelihood Ratio Test, one parameter exponential distribution, Inclusive/Exclusive Principle, GPGPUs, Multi-core, EC2 Cloud Cluster}
 
 \jnlcitation{\cname{%
 \author{Williams K.},
@@ -63,9 +61,8 @@ In the experiments we could achieve speedups up to $20,000$ times using our para
 \section{Introduction}\label{sec1}
 With the widespread availability of GPS-equipped smartphones and mobile
 sensors, there has been an urgent need to perform large scale spatial data analysis.
-For example, by carrying
-out a geographic projection of Twitter feeds, researchers are able to
-narrow down ``hotspot'' regions where a particular type of activity is attracting a disproportionate  amount of attention. In neuroscience, high resolution MRIs facilitate the precise detection and localization of regions of the brain which may indicate mental disorder.
+For example, by carrying out a geographic projection of Twitter feeds, researchers are able to
+narrow down ``hotspot'' regions where a particular type of activity is attracting a disproportionate  amount of attention. In neuroscience, high resolution MRIs facilitate the precise detection and localisation of regions of the brain which may indicate mental disorder.
 The statistical method of choice for identifying hotspots or anomalous regions
 is the Likelihood Ratio Test (LRT) statistic.
 Informally, the LRT of a spatial region compares the likelihood of the given spatial region with its complement, and hence can be used to identify hotspot regions. In \cite{chisquare}, it was shown that the LRT value follows a $\chi^{2}$ distribution, independent of the distribution of the underlying data.
@@ -114,7 +111,7 @@ The one-parameter exponential family (1EXP) simplifies the computation of the LR
 f(x; \theta )=C(x,\phi)exp((\theta T(x)-B_e(\theta))/a(\phi))
 \label{oneexp}
 \end{equation}
-where  $T(\cdot)$ is some measurable function, $a(\phi)$ is a function of some known scale parameter $(\phi>0)$, $\theta$ is an unknown parameter (called the natural parameter), and $B_e(\cdot)$ is a strictly convex function. Note that the support of ${x:f(x;\theta)>0}$ is independent of $\theta$.
+where  $T(\cdot)$ is some measurable function, $a(\phi)$ is a function of some known scale parameter $(\phi>0)$, $\theta$ is an unknown parameter (called the natural parameter), $B_e(\cdot)$ is a strictly convex function and $C()$ is some constant value. Note that the support of ${x:f(x;\theta)>0}$ is independent of $\theta$.
 \begin{theorem}\label{thm1}
 {\it\cite{DagMaxmize}:}
 {\it Let data set $X_R (R\in G)$ be independently distributed with $x_R\sim 1EXP(\theta,\phi,T,B_e,a$). The log-likelihood ratio test statistic for testing $H_{0}: \theta_R = \theta_{\bar R}$ versus $H_{1}: \theta_R \neq \theta_{\bar R}$ is given by:}
@@ -134,38 +131,76 @@ For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson dist
 \subsection{Parallel Enumeration Schemes}
 \label{sec:mov1}
 
-% Remove notion of GPGPU in this section / just say parallel computer
-In this section, we demonstrate the two different parallel strategies for performing LRT statistics in a one-dimensional data grid by example. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In the example, we simulate the architectural environment of~\cite{apweb}, and illustrate its drawbacks. The non-overlapping Enumeration strategy, called Range Mapping scheme, will be presented in this paper to overcome the limitations of the Overlapping Enumeration strategy. For simplicity, we will describe the strategies on abstract parallel machine not detailing its implementation on a concrete parallel platform. \\
+In this section, we demonstrate the two different parallel strategies for performing LRT statistics in a one-dimensional data grid by example. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In the example, we simulate the architectural environment of~\cite{apweb}, and illustrate its drawbacks. The non-overlapping Enumeration strategy, called Range Mapping scheme, will be presented in this paper to overcome the limitations of the Overlapping Enumeration strategy. For simplicity, we will describe the strategies on an abstract parallel machine not detailing its implementation on a concrete parallel platform.  The abstract parallel machine has a fixed number of parallel units (PU) whose memory for each PU is finite.
 
-%BFS: Please expand the example text. The explanation is too short!! Highlight the difference between the two strategies.
+EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT of each interval for the one-dimensional spatial data grid. To find the outlier, we enumerate all intervals that can be spawned over the one-dimensional data grid by performing LRT calculation explained in above section ~\ref{BG}. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n-1)$.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ intervals in total, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds. Figure ~\ref{example:subfig11} visualizes some intervals among above five data points. 
 
-EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT for the one-dimensional spatial data grid. In this example, we assume that for each interval in the data grid we have the parameters $(m_r, b_r)$  for the $LRT$ computation. The parameters $m_r$ and $b_r$ require 4 bytes of data storage, respectively. Let's assume that each parallel unit has at most 16 bytes of data storage. Hence, each parallel unit is limited to at most two intervals. To compute the LRT for the one-dimensional data grid, we enumerate all intervals that can be spawned over the one-dimensional data grid. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ intervals, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds.
- \begin{itemize}
- \item \emph{Overlapping Enumeration parallel strategy:}
-Since each parallel unit of the parallel machine can only maximally store and process $16$ bytes of data, only $2$ intervals can be processed for a single parallel unit at once. The overlapping strategy is proposed to enumerate every two continuous overlapped intervals (i.e. intervals $(i,j),(i,j+1)$ fitted to a parallel unit). The remaining non-continuous intervals cannot be fitted to a parallel unit because the required storage to calculate $LRT$ exceeds $16$ bytes. The $LRTs$ of these non-continuous intervals will be processed and merged on a sequential unit (CPU) (please see the details in~\cite{apweb}). To allocate statistic values of intervals to parallel unit for processing $LRT$ calculation, every two consecutive intervals are assigned to a certain parallel unit according to the starting point index of interval. Table~\ref{exampletable} shows the intervals processed by each parallel unit. For example, $PU_0$ contains intervals: $\{l_{(0,0)},l_{(0,1)}\}$ ; $PU_1$ contains intervals: $\{l_{(1,1)},l_{(1,2)}\}$, we can see that the overlapping scheme enumerates all of the intervals up to size of two. Figure~\ref{example1} illustrates the enumeration of all the intervals for those $5$ data points. \\
+To illustrate how to compute LRT for each interval in this example, we assume each interval independently follows poisson distribution and the calculation of LRT is given in last part of section ~\ref{BG} of this paper. The formula is repeated here: $c(m_l log ({m_l\over {b_l}})+ (1-m_l)log({{1-m_l}\over {1-b_l}}))$, where $c$ is a constant factor and $l$ denotes interval ~(c.f. \cite{DagMaxmize}). Another detailed similar example in two-dimensional grid is provided in \cite{dke}.Therefore, to compute LRT value of an interval in the formula, $m_l$ (i.e. success count) and $b_l$ (i.e. population count) are required. Table ~\ref{lrt-compute} provides sample value of $(m_l,b_l)$ for each independent interval. To compute the LRT of an interval, there are two different kind of calculations: (a) compute LRT of a single independent interval $l$, (b) compute LRT of an interval $l$, which is union of multiple non-overlapped intervals $l=l_1\cup l_2\cup...l_t$. For example, to obtain the LRT value of a single independent interval $l_{(0,0)}$, the computation is: $lrt_{(0,0)}=2\cdot log({2\over 10})+(1-2)log({{1-2}\over {1-10}})=-1.0$.  To obtain a larger interval interval  $l_{(0,1)}$ , which is the union of interval $l_{(0,0)}$ and $l_{(1,1)}$,  $(m_l, b_l)$ needs to be aggregated first. Since the data here follows poisson distribution, we know from above that $m_{l(0,1)}=m_{l(0,0)}+m_{l(1,1)}=2+2=4$ and $b_{l(0,1)}=b_{l(0,0)}+b_{l(1,1)}=10+10=20$ . Thus $lrt_{(0,1)}=4\cdot log({4\over 20})+(1-4)log({{1-4}\over {1-20}})=-0.9$. Similarly, the LRT of each sub-intervals can be obtained using one of the two approaches. 
 
-There are few drawbacks of this approach: First,  non-continuous intervals cannot be processed by parallel units. There are around $n\times {n \choose k}$ intervals will be processed sequentially. Second, some $PUs$ may have fewer number of intervals in this way. For example, $PU_4$ has only one interval (i.e. $\{l_{(3,3)}\}$). This leads to unbalanced workload among $PUs$.  Third, for each $PU$, each interval is assigned to a thread. The lengths of intervals are different and this can further creates different workload among different threads when accumulating statistics when computing $LRT$.\\
+From above, we know the computation of LRT for each interval. Now we move to present the strategies of parallelizing LRT computation in a data grid.  We assume the parameters $m_l$ and $b_l$ of each independent single interval takes up 4 bytes of data storage, respectively. Let's assume that each parallel unit of the abstract parallel machine has at most 16 bytes of data storage. Hence, each parallel unit is limited to compute at most two intervals.
 
-To overcome these drawbacks and to fully utilize the parallel unit, Non-Overlapping Enumeration parallel strategy and pre-computing strategy are proposed in the following to enable $LRT$ computation of all of intervals by each parallel unit.
 
-% BFS: Explain in more detail what Honer scheme is.
-Moreover, Horner scheme is used to allocate certain interval to certain $PU$. Horner scheme is a method for obtaining the incomplete fraction and the remainder in the division of a polynomial $f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}. Furthermore, the Quotient-Remainder theorem shows that for giving any integer $y$ and positive integer $x$, there exist unique integers $q$ and $r$ such that $y=d\times x+r$ and $0\leq r < x$. Therefore, for a certain $PU_y$, a corresponding point $(i,j)$ can be obtained by: $i= y /x$ and $j=y mod x$.
+\paragraph{Overlapping Enumeration Parallel Strategy}
+Since each parallel unit of the parallel machine can only maximally store and process $16$ bytes of data and the statistics values of each single independent interval takes up $8$ bytes (i.e. 4 bytes of $m_l$ + 4 bytes of $b_l$ = 8 bytes ), therefore the maximum number of interval can be processed is $\frac{max\textunderscore allowed \textunderscore bytes\textunderscore pu }{bytes\textunderscore of\textunderscore \textunderscore interval}=\frac{16}{8}=2$ for a single parallel unit at once. In the overlapping strategy ~\cite{apweb}, each $PU_i$ is associated to $k$ continuous intervals. For this example, each PU enumerates every two continuous overlapping intervals (i.e., the interval $(i,j)$ and the interval $(i,j+1)$ by a single parallel unit.  The $LRTs$ of the remaining intervals will be sequentially processed and merged by the CPU (c.f.~\cite{apweb}). The reasons are: (a)any interval with length $|l|>k$ (k=2 in this example) cannot be fitted to a PU due to lack of memory of parallel unit; (b)every two non-continuous single intervals processed on a PU cannot process intervals optimally. On the other hand, if PU store $k$ continuous single intervals, it can process all of the ${\frac{k \cdot (k+1)}{2}}$ sub-intervals on a single PU. Table~\ref{exampletable} illustrates the allocation of continuous intervals to parallel units, and the allocation of the rest intervals to the CPU.  For example, $PU_0$ is assigned the work to compute the LRT for the intervals $\{l_{(0,0)},l_{(0,1)}\}$, and $PU_1$ is assigned for computing the LRT for intervals $\{l_{(1,1)},l_{(1,2)}\}$. Figure~\ref{example:subfig11} illustrates the enumeration of some intervals for those $5$ data points by applying over-lapping strategy.
+%added, please see whether it is ok
+%BFS: Please can you explain Figure~\ref{example1} in detail; at the moment it is not clear how this relates to the continuous and non-continuous intervals. Also explain how the LRT is computed in detail for each interval.
 
-\item \emph{Non-Overlapping Enumeration parallel strategy:}
-If we map each interval $l_{i,j}$ as a point $(i,j)$ and plot these points onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the $10$ intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals is the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by this product: $[width,height]=[n+1,{\frac{n}{2}}]$. In this example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle $R_1$ and it has the exact same number of points as the formed triangular shape $R_2$. Therefore, each point in this rectangle can be mapped to one point in the triangle space. This means each interval in the one-dimensional grid has one-to-one mapping from triangular space to rectangular space (Please see Table ~\ref{ex-nonoverlap})\\
+The aforementioned approach has a few drawbacks: First, non-continuous intervals cannot be processed by parallel units. Hence, there are around $n\cdot {n \choose k}$ (k>2 in above example) intervals that will be processed sequentially by the CPU. Second, some $PUs$ may have fewer number of intervals as a consequence. For example, $PU_4$ has only one interval (i.e. $\{l_{(3,3)}\}$). Hence, the overlapping enumeration parallel strategy causes an unbalanced workload among $PUs$.  Third, for each $PU$, each interval is assigned to a thread. The lengths of intervals are different and this can further creates different workloads among different threads while accumulating statistics for computing $LRT$. To overcome the drawbacks of this approach, the Non-Overlapping Enumeration parallel strategy is proposed.
+
+\begin{table}[t]
+\centering \caption{ $m_R$ and $b_R$ statistics for each independent interval $l_(i,j)$\label{tab:op}}
+     \begin{tabular}{|c|c|c|}
+	\hline
+    Interval  &  $m_R$ & $b_R$ \\
+	\hline
+    (0,0)  &  2 &  10 \\
+    \hline
+    (1,1)  & 2&  10 \\
+    \hline
+    (2,2)  &  15& 10 \\
+    \hline
+     (3,3) & 3  & 10  \\
+    \hline
+\end{tabular}
+\label{lrt-compute}
+\end{table}
+
+\paragraph{Non-Overlapping Enumeration Parallel Strategy}
+
+Our new scheme employs a pre-computation strategy are for computing $LRT$  on the abstract parallel machine. Moreover, Horner scheme is used to allocate certain interval to certain $PU$. The Horner scheme is used to describe elements in a finite discrete multi-dimensional space to a single number and vice versa. Examples are conversion of numbers in different number systems etc.
+
+If we map each interval $l_{i,j}$ as a point $(i,j)$ and plot these points onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the $10$ intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals is the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by this product: $[width,height]=[n+1,{\frac{n}{2}}]$. In this example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle $R_1$ and it has the exact same number of points as the formed triangular shape $R_2$. Therefore, each point in this rectangle can be mapped to one point in the triangle space. This means each interval in the one-dimensional grid has one-to-one mapping from triangular space to rectangular space (Please see Table ~\ref{ex-nonoverlap})
+
+To allocate an interval $l_{(i,j)}$ to a certain $PU_y$ , horner scheme can be used for mapping $y$ to $(i,j)$ and vice versa. To show how horner scheme works, we denote:
+$f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}, where $f(x)$ is described in a polynomial form with coefficients $(a_0,a_1,...,a_n)$ within certain field . Such $f(x)$ can be re-written in the form: $f(x)= (x-a)g(x)+r$, where the incomplete fraction is $g(x)=b_{n-1}x^{n-1}+...+b_0$ and $r$ is the remainder. See the table ~\ref{tab:coff}. For example,in the form of $f(x)=a_0+x(a_1+x(a_2+...+x(a_{n-1}+a_nx)))$, the incomplete fraction $a_1+x(a_2+...+x(a_{n-1}+a_nx)))$ and the remainder $a_0$ can be obtained by given x. To illustrate in more detail, if giving  $y\in {0,1,3,4,5}$ in one dimension  to map to $(i,j)$, where $0=<i,j<n$, in two dimension, we denote $y=i\cdot n+j$. Using horner scheme, we can derive the fraction $i$ and remainder $j$ uniquely by computing $i=y/n$ and $j=y mod n$. Therefore, for a certain $PU_y$, where $y\in \{0,\frac{n \cdot (n+1)}{2}\}$  a corresponding point $(i,j)$ can be obtained by: $i= y /n$ and $j=y mod n$. %More detail how the conversion works here
+ 
+ \begin{table}[t]
+\centering \caption{ coefficient $a_i$ and $b_i$ \label{tab:coff}}
+     \begin{tabular}{|c|c|c|c|}
+	\hline
+    $a_n$  &  $a_{n-1}$ &...& $a_0$ \\
+	\hline
+    a  &  $b_n$ &...&$b_0$  \\
+    \hline
+\end{tabular}
+\label{lrt-compute}
+\end{table}
+%added, please see whether it is ok
+%Explain honer scheme and how it is used to map intervals to PUs.
+% BFS conversion for number
+% More detail is required here.
+
+
+
 There are a few advantages: (1) This solves the workload imbalance among $PUs$. Each $PU$ processes same amount of intervals. In the rectangular space $R_1$, we can assign the same amount of intervals (i.e. points in this example) to each $PU$ by dividing the entire space equally. (2) By using a dynamic programming scheme in section ~\ref{sec:mov2} to pre-compute subsets of $LRT$ statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads due to the $LRT$ computation on different sized sub-grid for each thread.
-
- \end{itemize}
-
-
 
 \begin{figure}[t]
 \centering
-\subfloat[Overlapping Enumeration]{
+\subfloat[(a) Overlapping Enumeration]{
 \includegraphics[width=0.4\linewidth]{figtkde/ex11}
 \label{example:subfig11}
 }
-~~\subfloat[Non-overlapping Enumeration]{
+~~\subfloat[(b) Non-overlapping Enumeration]{
 \includegraphics[width=0.3\linewidth]{figtkde/example12}
 \label{example:subfig12}
 }\\
@@ -563,19 +598,19 @@ Similarly, the computation of set $B,X,Y$ is listed as the following:
 \begin{figure}[h]
 \centering
 \subfloat[Pre-computation of set A  ]{
-\includegraphics[width=0.25\linewidth]{figtkde/prea}
+\includegraphics[width=0.4\linewidth]{figtkde/prea}
 \label{prec:subfig1}
 }
 ~~\subfloat[Pre-computation of set B]{
-\includegraphics[width=0.25\linewidth]{figtkde/preb}
+\includegraphics[width=0.4\linewidth]{figtkde/preb}
 \label{prec:subfig2}
 }\\
 ~~\subfloat[Pre-computation of set X]{
-\includegraphics[width=0.25\linewidth]{figtkde/prex}
+\includegraphics[width=0.4\linewidth]{figtkde/prex}
 \label{prec:subfig3}
 }
 ~~\subfloat[Pre-computation of set Y]{
-\includegraphics[width=0.25\linewidth]{figtkde/prey}
+\includegraphics[width=0.4\linewidth]{figtkde/prey}
 \label{prec:subfig4}
 }
 \caption{pre-computation of set A, B, X and Y}\label{prec}
