@@ -40,6 +40,7 @@
 \presentaddress{This is sample for present address text this is sample for present address text}
 
 \abstract[Summary]{The Likelihood Ratio Test (LRT) is a method for identifying hotspots or anomalous rectangular regions for an spatial data grid that draws from an arbitrary distribution.  LRT has wide-spread applications from social-media applications powered by mobile phones to medical image processing applications. Unfortunately, a na\"ive implementation of LRT exhibits a worst-case time complexity of $\bigo(n^4)$ for a two-dimensional grid.
+
 For larger grids with a grid size of more than $64\times 64$ cells, a na\"ive implementation of LRT becomes intractable~\cite{jour} and it takes around several days to execute Grid(64,64) on a single-core CPU.
 
 In this paper, we propose a parallel processing scheme for LRT computations for one parameter exponential (1EXP) distribution for multi-dimensional spatial data grids. The parallel processing scheme transforms LRT computations to a completely balanced embarrassingly parallel problem utilising a novel range mapping scheme. The new range mapping scheme relies on a dynamic pre-computation algorithm, and exhibits a worst-case complexity of $\bigo(n^2)$  for two dimensional spatial data-grids improving the complexity class by an order of two. Experiments were conducted for various computer architectures and platforms including shared-memory multi-core machines, multi-GPGPU computers, and the EC2 cloud computer. Extensive experiments are provided to demonstrate the utility of this approach and extensive performance analysis is given.
@@ -73,7 +74,7 @@ anomalous region is $\bigo(n^4)$. The reason for this high complexity class is t
 \noindent The nature of LRT permits the independent computation of regions. This facilitates parallelization to some degree. However, the LRT computation of a region $R$ involves the irregularly shaped computation of $\bar R$~\cite{apweb}. In a parallel environment, this can drastically reduce its computation performance\cite{irregular1,irregular2,irregular3}.
 To reduce the overall enumeration cost and address the irregular computation, Pang et al.~\cite{apweb} presented a unified parallel approach for generalized LRT computation in spatial data grids on a GPGPU environment. The whole grid is partitioned into overlapped blocks and LRT computation is performed independently on each block in shared memory. For the regions which do not fit into shared memory, the computation is done on a CPU. While performance is greatly improved compared to the naive approach on a CPU, the granularity within each block is coarse. The computation of various sized sub-regions creates imbalanced workloads on each thread.
 
-\noindent In this work, we focus on the parallel strategies for improving the LRT computation for the 1EXP family. We use a different strategy to ensure workload on each ``parallel unit" (PU) \footnote{We define the (computational) granularity of a parallel architecture as the largest ``computational unit" that should run sequentially on an ``application computing unit". It refers to ``block/thread" for GPGPU, ``core" for multi-core and ``process" for cloud pc-cluster} is balanced. We propose a novel range mapping scheme to transform irregular shaped region space to a contiguously regular shaped region space with regards to iterate all of the regions in spatial grid (G). The fine-grained workload on each PU is produced by partitioning the regular space into different equal sized portions. Furthermore, a dynamic pre-computing scheme from our previous work\cite{apweb} based on the Inclusive/Exclusive principle is presented for 1EXP. Four pre-computed data sets corresponding to four corners of the data grid are generated to reduce the cost of querying the intermediate statistics of each region to $\bigo(1)$.
+\noindent In this work, we focus on the parallel strategies for improving the LRT computation for the 1EXP family. We use a different strategy to ensure workload on each ``parallel unit" (PU) \footnote{We define the (computational) granularity of a parallel architecture as the largest ``parallel unit" that should run sequentially on an ``application computing unit". It refers to ``block/thread" for GPGPU, ``core" for multi-core and ``process" for cloud pc-cluster} is balanced. We propose a novel range mapping scheme to transform irregular triangular shaped region space to a contiguously regular shaped region space with regards to iterate all of the regions in spatial grid (G). The fine-grained workload on each PU is produced by partitioning the regular space into different equal sized portions. Furthermore, a dynamic pre-computing scheme from our previous work\cite{apweb} based on the Inclusive/Exclusive principle is presented for 1EXP. Four pre-computed data sets corresponding to four corners of the data grid are generated to reduce the cost of querying the intermediate statistics of each region to $\bigo(1)$.
 
 Overall, the {\bf contributions} in our work are:
 \begin{itemize}
@@ -131,24 +132,22 @@ For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson dist
 \subsection{Parallel Enumeration Schemes}
 \label{sec:mov1}
 
-In this section, we demonstrate the two different parallel strategies for performing LRT statistics in a one-dimensional data grid by example. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In the example, we simulate the architectural environment of~\cite{apweb}, and illustrate its drawbacks. The non-overlapping Enumeration strategy, called Range Mapping scheme, will be presented in this paper to overcome the limitations of the Overlapping Enumeration strategy. For simplicity, we will describe the strategies on an abstract parallel machine not detailing its implementation on a concrete parallel platform.  The abstract parallel machine has a fixed number of parallel units (PU) whose memory for each PU is finite.
+In this section, we demonstrate two different parallel strategies for performing LRT statistics in a one-dimensional data grid by example. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In the example, we simulate the architectural environment of~\cite{apweb}, and illustrate its drawbacks. The non-overlapping Enumeration strategy, called Range Mapping scheme, will be presented in this paper to overcome the limitations of the Overlapping Enumeration strategy. For simplicity, we will describe the strategies on an abstract parallel machine not detailing its implementation on a concrete parallel platform.  The abstract parallel machine has a fixed number of parallel units (PU) whose memory for each PU is finite.
 
-EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT of each interval for the one-dimensional spatial data grid. To find the outlier, we enumerate all intervals that can be spawned over the one-dimensional data grid by performing LRT calculation explained in above section ~\ref{BG}. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n-1)$.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ intervals in total, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds. Figure ~\ref{example:subfig11} visualizes some intervals among above five data points. 
+EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT of each interval for the one-dimensional spatial data grid. To find the outlier, we enumerate all intervals that can be spawned over the one-dimensional data grid by performing LRT calculation explained in above section ~\ref{BG}. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$ and there are $n+1$ points in one dimensional grid.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ intervals in total, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds. Figure ~\ref{example:subfig11} visualizes some intervals among above five data points.
 
-To illustrate how to compute LRT for each interval in this example, we assume each interval independently follows poisson distribution and the calculation of LRT is given in last part of section ~\ref{BG} of this paper. The formula is repeated here: $c(m_l log ({m_l\over {b_l}})+ (1-m_l)log({{1-m_l}\over {1-b_l}}))$, where $c$ is a constant factor and $l$ denotes interval ~(c.f. \cite{DagMaxmize}). Another detailed similar example in two-dimensional grid is provided in \cite{dke}.Therefore, to compute LRT value of an interval in the formula, $m_l$ (i.e. success count) and $b_l$ (i.e. population count) are required. Table ~\ref{lrt-compute} provides sample value of $(m_l,b_l)$ for each independent interval. To compute the LRT of an interval, there are two different kind of calculations: (a) compute LRT of a single independent interval $l$, (b) compute LRT of an interval $l$, which is union of multiple non-overlapped intervals $l=l_1\cup l_2\cup...l_t$. For example, to obtain the LRT value of a single independent interval $l_{(0,0)}$, the computation is: $lrt_{(0,0)}=2\cdot log({2\over 10})+(1-2)log({{1-2}\over {1-10}})=-1.0$.  To obtain a larger interval interval  $l_{(0,1)}$ , which is the union of interval $l_{(0,0)}$ and $l_{(1,1)}$,  $(m_l, b_l)$ needs to be aggregated first. Since the data here follows poisson distribution, we know from above that $m_{l(0,1)}=m_{l(0,0)}+m_{l(1,1)}=2+2=4$ and $b_{l(0,1)}=b_{l(0,0)}+b_{l(1,1)}=10+10=20$ . Thus $lrt_{(0,1)}=4\cdot log({4\over 20})+(1-4)log({{1-4}\over {1-20}})=-0.9$. Similarly, the LRT of each sub-intervals can be obtained using one of the two approaches. Since $m_l$ and $b_l$ need to be aggregated for some sub-intervals, dynamic pr-computation will be used in our following strategies to fully parallelize the computation.
+To illustrate how to compute LRT for each interval in this example, we assume each interval independently follows poisson distribution and the calculation of LRT is given in last part of section ~\ref{BG} of this paper. The formula is repeated here: $c(m_l log ({m_l\over {b_l}})+ (1-m_l)log({{1-m_l}\over {1-b_l}}))$, where $c$ is a constant factor and $l$ denotes interval ~(c.f. \cite{DagMaxmize}). Another detailed similar example in two-dimensional grid is provided in \cite{dke}.Therefore, to compute LRT value of an interval in the formula, $m_l$ (i.e. success count) and $b_l$ (i.e. population count) are required. Table ~\ref{tab:mb} provides sample value of $(m_l,b_l)$ for each independent interval. To compute the LRT of an interval, there are two different kind of calculations: (a) compute LRT of a single independent interval $l$, (b) compute LRT of an interval $l$, which is union of multiple non-overlapped intervals $l=l_1\cup l_2\cup...l_t$. For example, to obtain the LRT value of a single independent interval $l_{(0,0)}$, the computation is: $lrt_{(0,0)}=2\cdot log({2\over 10})+(1-2)log({{1-2}\over {1-10}})=-1.0$.  To obtain a larger interval interval  $l_{(0,1)}$ , which is the union of independent interval $l_{(0,0)}$ and $l_{(1,1)}$,  $(m_l, b_l)$ needs to be aggregated first. Since the data here follows poisson distribution, we know from above that $m_{l(0,1)}=m_{l(0,0)}+m_{l(1,1)}=2+2=4$ and $b_{l(0,1)}=b_{l(0,0)}+b_{l(1,1)}=10+10=20$ . Thus $lrt_{(0,1)}=4\cdot log({4\over 20})+(1-4)log({{1-4}\over {1-20}})=-0.9$. The LRT of each sub-intervals can be obtained using one of the two approaches. Since $m_l$ and $b_l$ need to be aggregated for calculating LRTs of some sub-intervals, dynamic pr-computation will be used in our following strategies to fully parallelize the computation.
 
 From above, we know the computation of LRT for each interval. Now we move to present the strategies of parallelizing LRT computation in a data grid.  We assume the parameters $m_l$ and $b_l$ of each independent single interval takes up 4 bytes of data storage, respectively. Let's assume that each parallel unit of the abstract parallel machine has at most 16 bytes of data storage. Hence, each parallel unit is limited to compute at most two intervals.
 
 
 \paragraph{Overlapping Enumeration Parallel Strategy}
-Since each parallel unit of the parallel machine can only maximally store and process $16$ bytes of data and the statistics values of each single independent interval takes up $8$ bytes (i.e. 4 bytes of $m_l$ + 4 bytes of $b_l$ = 8 bytes ), therefore the maximum number of interval can be processed is $\frac{max\textunderscore allowed \textunderscore bytes\textunderscore pu }{bytes\textunderscore of\textunderscore \textunderscore interval}=\frac{16}{8}=2$ for a single parallel unit at once. In the overlapping strategy ~\cite{apweb}, each $PU_i$ is associated to $k$ continuous intervals. For this example, each PU enumerates every two continuous overlapping intervals (i.e., the interval $(i,j)$ and the interval $(i,j+1)$ by a single parallel unit.  The $LRTs$ of the remaining intervals will be sequentially processed and merged by the CPU (c.f.~\cite{apweb}). The reasons are: (a)any interval with length $|l|>k$ (k=2 in this example) cannot be fitted to a PU due to lack of memory of parallel unit; (b)every two non-continuous single intervals processed on a PU cannot process intervals optimally. On the other hand, if PU store $k$ continuous single intervals, it can process all of the ${\frac{k \cdot (k+1)}{2}}$ sub-intervals on a single PU. Table~\ref{exampletable} illustrates the allocation of continuous intervals to parallel units, and the allocation of the rest intervals to the CPU.  For example, $PU_0$ is assigned the work to compute the LRT for the intervals $\{l_{(0,0)},l_{(0,1)}\}$, and $PU_1$ is assigned for computing the LRT for intervals $\{l_{(1,1)},l_{(1,2)}\}$. Figure~\ref{example:subfig11} illustrates the enumeration of some intervals for those $5$ data points by applying over-lapping strategy.
-%added, please see whether it is ok
-%BFS: Please can you explain Figure~\ref{example1} in detail; at the moment it is not clear how this relates to the continuous and non-continuous intervals. Also explain how the LRT is computed in detail for each interval.
+Since each parallel unit of the parallel machine can only maximally store and process $16$ bytes of data and the statistics values of each single independent interval takes up $8$ bytes (i.e. 4 bytes of $m_l$ + 4 bytes of $b_l$ = 8 bytes ), therefore the maximum number of independent interval can be processed is $\frac{max\textunderscore allowed \textunderscore bytes\textunderscore pu }{bytes\textunderscore of\textunderscore \textunderscore interval}=\frac{16}{8}=2$ for a single parallel unit at once. In the overlapping strategy ~\cite{apweb}, each $PU_i$ is associated to $k$ continuous intervals. For this example, each PU enumerates every two continuous overlapping intervals (i.e., the interval $(i,j)$ and the interval $(i,j+1)$ by a single parallel unit.  The $LRTs$ of the remaining intervals will be sequentially processed and merged by the CPU (c.f.~\cite{apweb}). The reasons are: (a)any interval with length $|l|>k$ (k=2 in this example) cannot be fitted to a PU due to lack of memory of parallel unit; (b)every two non-continuous single intervals processed on a PU cannot process intervals optimally. On the other hand, if PU store $k$ continuous single intervals, it can process all of the ${\frac{k \cdot (k+1)}{2}}$ sub-intervals on a single PU. Table~\ref{exampletable} illustrates the allocation of continuous intervals to parallel units, and the allocation of the rest intervals to the CPU.  For example, $PU_0$ is assigned the work to compute the LRT for the intervals $\{l_{(0,0)},l_{(0,1)}\}$, and $PU_1$ is assigned for computing the LRT for intervals $\{l_{(1,1)},l_{(1,2)}\}$. Figure~\ref{example:subfig11} illustrates the enumeration of some intervals for those $5$ data points by applying over-lapping strategy.
 
 The aforementioned approach has a few drawbacks: First, non-continuous intervals cannot be processed by parallel units. Hence, there are around $n\cdot {n \choose k}$ (k>2 in above example) intervals that will be processed sequentially by the CPU. Second, some $PUs$ may have fewer number of intervals as a consequence. For example, $PU_4$ has only one interval (i.e. $\{l_{(3,3)}\}$). Hence, the overlapping enumeration parallel strategy causes an unbalanced workload among $PUs$.  Third, for each $PU$, each interval is assigned to a thread. The lengths of intervals are different and this can further creates different workloads among different threads while accumulating statistics for computing $LRT$. To overcome the drawbacks of this approach, the Non-Overlapping Enumeration parallel strategy is proposed.
 
 \begin{table}[t]
-\centering \caption{ $m_R$ and $b_R$ statistics for each independent interval $l_(i,j)$\label{tab:op}}
+\centering \caption{ $m_R$ and $b_R$ statistics for each independent interval $l_(i,j)$\label{tab:mb}}
      \begin{tabular}{|c|c|c|}
 	\hline
     Interval  &  $m_R$ & $b_R$ \\
@@ -167,13 +166,13 @@ The aforementioned approach has a few drawbacks: First, non-continuous intervals
 
 \paragraph{Non-Overlapping Enumeration Parallel Strategy}
 
-Our new scheme employs a pre-computation strategy are for computing $LRT$  on the abstract parallel machine. Moreover, Horner scheme is used to allocate certain interval to certain $PU$. The Horner scheme is used to describe elements in a finite discrete multi-dimensional space to a single number and vice versa. Examples are conversion of numbers in different number systems etc.
+Our new scheme employs a pre-computation strategy is for computing $LRT$  on the abstract parallel machine. Moreover, Horner scheme is used to allocate certain interval to certain $PU$. The Horner scheme is used to describe elements in a finite discrete multi-dimensional space to a single number and vice versa. Examples are conversion of numbers in different number systems etc.
 
-If we map each interval $l_{i,j}$ as a point $(i,j)$ and plot these points onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the $10$ intervals forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals is the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by this product: $[width,height]=[n+1,{\frac{n}{2}}]$. In this example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle $R_1$ and it has the exact same number of points as the formed triangular shape $R_2$. Therefore, each point in this rectangle can be mapped to one point in the triangle space. This means each interval in the one-dimensional grid has one-to-one mapping from triangular space to rectangular space (Please see Table ~\ref{ex-nonoverlap})
+If we map each interval $l_{i,j}$ as a point $(i,j)$ and plot these points onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the $10$ intervals in this example forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals is the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by this product: $[width,height]=[n+1,{\frac{n}{2}}]$. In this example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle $R_1$ and it has the exact same number of points as the formed triangular shape $R_2$. Therefore, each point in this rectangle can be mapped to one point in the triangle space. This means each interval in the one-dimensional grid has one-to-one mapping from triangular space to rectangular space (Please see Table ~\ref{ex-nonoverlap})
 
 To allocate an interval $l_{(i,j)}$ to a certain $PU_y$ , horner scheme can be used for mapping $y$ to $(i,j)$ and vice versa. To show how horner scheme works, we denote:
-$f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}, where $f(x)$ is described in a polynomial form with coefficients $(a_0,a_1,...,a_n)$ within certain field . Such $f(x)$ can be re-written in the form: $f(x)= (x-a)g(x)+r$, where the incomplete fraction is $g(x)=b_{n-1}x^{n-1}+...+b_0$ and $r$ is the remainder. See the table ~\ref{tab:coff}. For example,in the form of $f(x)=a_0+x(a_1+x(a_2+...+x(a_{n-1}+a_nx)))$, the incomplete fraction $a_1+x(a_2+...+x(a_{n-1}+a_nx)))$ and the remainder $a_0$ can be obtained by given x. To illustrate in more detail, if giving  $y\in {0,1,3,4,5}$ in one dimension  to map to $(i,j)$, where $0=<i,j<n$, in two dimension, we denote $y=i\cdot n+j$. Using horner scheme, we can derive the fraction $i$ and remainder $j$ uniquely by computing $i=y/n$ and $j=y mod n$. Therefore, for a certain $PU_y$, where $y\in \{0,\frac{n \cdot (n+1)}{2}\}$  a corresponding point $(i,j)$ can be obtained by: $i= y /n$ and $j=y mod n$. %More detail how the conversion works here
- 
+$f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}, where $f(x)$ is described in a polynomial form with coefficients $(a_0,a_1,...,a_n)$ within certain field . Such $f(x)$ can be re-written in the form: $f(x)= (x-a)g(x)+r$, where the incomplete fraction is $g(x)=b_{n-1}x^{n-1}+...+b_0$ and $r$ is the remainder. See the table ~\ref{tab:coff} for mapping coefficient $b_i$ to $a_i$. For example,in the form of $f(x)=a_0+x(a_1+x(a_2+...+x(a_{n-1}+a_nx)))$, the incomplete fraction $a_1+x(a_2+...+x(a_{n-1}+a_nx)))$ and the remainder $a_0$ can be obtained by given x. To illustrate in more detail, if giving the value of $y\in \{0,1,3,4,5\}$ in one dimension  to map to $(i,j)$, where $0=<i,j<n$, in two dimension, we denote $y=i\cdot n+j$. Using horner scheme, we can derive the fraction $i$ and remainder $j$ uniquely by computing $i=y/n$ and $j=y mod n$. Therefore, for a certain $PU_y$, where $y\in \{0,...,\frac{n \cdot (n+1)}{2}\}$  a corresponding point $(i,j)$ can be obtained by: $i= y /(n+1)$ and $j=y mod (n+1)$ , where $i\in \{0,...,\frac{n}{2}-1\}$ and $j\in\{0,...,n\} $. %More detail how the conversion works here
+
  \begin{table}[t]
 \centering \caption{ coefficient $a_i$ and $b_i$ \label{tab:coff}}
      \begin{tabular}{|c|c|c|c|}
@@ -185,14 +184,8 @@ $f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}, where $f(x)$ is described in a po
 \end{tabular}
 \label{lrt-compute}
 \end{table}
-%added, please see whether it is ok
-%Explain honer scheme and how it is used to map intervals to PUs.
-% BFS conversion for number
-% More detail is required here.
 
-
-
-There are a few advantages: (1) This solves the workload imbalance among $PUs$. Each $PU$ processes same amount of intervals. In the rectangular space $R_1$, we can assign the same amount of intervals (i.e. points in this example) to each $PU$ by dividing the entire space equally. (2) By using a dynamic programming scheme in section ~\ref{sec:mov2} to pre-compute subsets of $LRT$ statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads due to the $LRT$ computation on different sized sub-grid for each thread.
+There are a few advantages of this approach: (1) This solves the workload imbalance among $PUs$. Each $PU$ processes same amount of intervals. In the rectangular space $R_1$, we can assign the same amount of intervals (i.e. points in this example) to each $PU$ by dividing the entire space equally. (2) By using a dynamic programming scheme in section ~\ref{sec:mov2} to pre-compute subsets of $LRT$ statistic value and the computation of each thread becomes $\bigo(1)$, which will solve the workload imbalance issue among threads due to the $LRT$ computation on different sized sub-grid for each thread.
 
 \begin{figure}[t]
 \centering
@@ -312,7 +305,8 @@ This pre-computation scheme has been implemented in~\cite{apweb} and we will giv
 \section {Range Mapping Scheme} \label{RMS}
 In this section, we study how parallelism helps to enumerate all of the rectangular regions (R) in a spatial grid (G). We will explain this scheme in one-dimensional, two-dimensional, and $k$-dimensional data-grids.
 
-From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n$ data points, denoted as $l_{(i,j)}$, are plotted as point $(i,j)$ onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PU) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.\\
+From section~\ref{sec:mov1}, we know that if all of the pairwise intervals between $n+1$ data points, denoted as $l_{(i,j)}$, are plotted as point $(i,j)$ onto two-dimensional coordinate system, they form triangular shape. Each pair of $(i,j)$ in triangular-shaped space can be transformed to pair $(i',j')$ in rectangular-shaped space. After transformation, it enables the whole rectangular space to be partitioned into equal portions. Each portion consists of same amount of pairs and is distributed onto different ``parallel computing component'' (PU) to balance workload and facilitate parallelization. We name this transforming scheme as range mapping scheme. This scheme can be directly extended to two dimensional spatial grid and multi-dimensional grid.
+
 Figure~\ref{trans:subfig1} plots out all of the intervals $l_{(i,j)}$ in two-dimensional space and we can see that these points $(i,j)$ forms a triangle. Figure~\ref{trans:subfig2} shows the rectangular-shaped space after transformation.
 
 \begin{figure}[h]
@@ -328,19 +322,19 @@ Figure~\ref{trans:subfig1} plots out all of the intervals $l_{(i,j)}$ in two-dim
 \caption{1-d Interval Transformation from $[n,n]$ to $[(n+1)/2,n]$}\label{modelBF}
 \end{figure}
 
-To assign an interval $l_(i,j)$ to a $PU_y$, Horner scheme discussed above is applied~\cite{horner}. For example, we can compute: $i=y/n$ and $j= y \mod n$, where    $y \in (0,{\frac{n \cdot (n+1)}{2}})$, $y \in(0,n)$. Then transform $(i,j)$ from rectangular space to $(i',j')$  to triangle space. We give details in the following:
+To assign an interval $l_(i,j)$ to a $PU_y$, Horner scheme discussed above is applied~\cite{horner}. Then transform $(i,j)$ from rectangular space to $(i',j')$  to triangle space. We give details in the following:
 
 \subsection{One-Dimensional Mapping}
 For one-dimensional range mapping scheme, we assume there are $n$ data points, therefore having ${\frac{n \cdot (n+1)}{2}}$ intervals. There are two cases in one-dimensional grid: (1) The grid size $n$ is even (2) The grid size $n$ is odd. \\
 
 Given the following information:
 \begin{eqnarray}
-& N = \{0,...,n-1\}               & \\
+& N = \{0,...,n\}               & \\
 & R = \{(i,j)\in [0,...,\lfloor \frac{n+1}{2}\rfloor -1] \times [0,...,n]\}     &\\
 & T = \{(i',j') \in [0,...,n] \times [0,...,n] | i'<=j'\}   &\\
 & M = \{0,..., \lfloor \frac{n+1}{2}\rfloor \cdot (n+1)-1\}  &\\
 \end{eqnarray}
-where  $ N$ is the set of data points which partitions one-dimensional grid to intervals and total number of these points is $n$. $ R$ is the rectangular space formed by $\{[0,...,\lfloor \frac{n+1}{2}\rfloor -1]\times [0,...,n]\}$ and each point $(i,j)$ (i.e. interval) in this space is assigned to a certain $PU_y$. $T$ is the triangular space formed by original intervals, where each interval is $l_(i',j')$ $(0<i'<j'\leq n)$. $ M$ is total number of  intervals for computing $LRT$.\\
+where  $ N$ is the set of $n+1$ data points which partitions one-dimensional grid into $n$ intervals. $ R$ is the rectangular space formed by $\{[0,...,\lfloor \frac{n+1}{2}\rfloor -1]\times [0,...,n]\}$ and each point $(i,j)$ (i.e. interval) in this space is assigned to a certain $PU_y$. $T$ is the triangular space formed by original intervals, where each interval is $l_(i',j')$ $(0<i'<j'\leq n)$. $ M$ is total number of  intervals for computing $LRT$.\\
  To have a generalized form of the mapping scheme when grid size $n$ is even or odd , we extend the calculation of total intervals from $\frac{n+1}{2} \cdot n$ to $\lfloor \frac{n+1}{2}\rfloor \cdot (n+1)$. When $n$ is even, we know $\lfloor \frac{n+1}{2}\rfloor =\frac{n}{2}$. When $n$ is odd, we know $\lfloor \frac{n+1}{2}\rfloor= \frac{n+1}{2}$. The generalized computation of number of total intervals in our range mapping scheme is $\frac{n+1}{2} \cdot (n+1) $ no matter grid size $n$ is even or odd, this produces $\frac{n+1}{2}$ more intervals with enlarged set when $n$ is odd but have exact calculation when $n$ is even. \\
 
 \noindent   \textbf{\emph{(1) The grid size $n$ is even:}} A mapping Function $\phi:  M \rightarrow  R \rightarrow  T$  is composed of two functions: $\phi_1:  M \rightarrow  R$ and $\phi_2:  R \rightarrow  T$. Firstly, $\phi_1$ transforms the index value of $y\in  M$ of a certain $PU_y$ to a pair $(i,j)\in  R$ in rectangular space. Secondly, $\phi_2$ transforms the pair $(i,j)\in  R$ from rectangular space to a pair $(i',j')\in  T$ to triangular space.\\
@@ -352,17 +346,17 @@ IR Mapping Function
 \end{flalign*}
  where $i  = y / (n+1)$ and $j = y \mod (n+1)$.
 \end{definition}
-IR (Index to rectangular) mapping function assigns a point $(i,j)$ in rectangular space $R$ to $y$ of $PU_y$  by applying inverse horner scheme, where $y\in \{0,...,\lfloor \frac{n+1}{2}\rfloor \cdot (n+1)-1\}$.  Point $(i,j)$ is computed by $i  = y / (n+1)$ and $j = y \mod (n+1)$ , where $y$ is the index of a particular $PU$ and constant value of $n$ is the total number of data points in one-dimensional grid.
+IR (Index to rectangular) mapping function assigns a point $(i,j)$ in rectangular space $R$ to $y$ of $PU_y$  by applying inverse horner scheme, where $y\in \{0,...,\lfloor \frac{n+1}{2}\rfloor \cdot (n+1)-1\}$. When $n$ is even, $\lfloor \frac{n+1}{2}\rfloor=\frac{n}{2}$. Point $(i,j)$ is computed by $i  = y / (n+1)$ and $j = y \mod (n+1)$ , where $y$ is the index of a particular $PU$ and constant value of $n$ is the total number of data points in one-dimensional grid.
  \vspace{5mm}
 \begin{lemma}
-Mapping function $\phi_1$ transforms $y\in M$ (i.e. $y\in \{0,...,\lfloor \frac{n+1}{2}\rfloor \cdot n\}$) to $(i,j) \in R$, where $i \in \{0,...,\frac{n}{2}-1\}$ and $j \in \{0,...,n\}$.
+Mapping function $\phi_1$ transforms $y\in M$ (i.e. $y\in \{0,..., \frac{n\cdot (n+1)}{2} \}$) to $(i,j) \in R$, where $i \in \{0,...,\frac{n}{2}-1\}$ and $j \in \{0,...,n\}$.
 \end{lemma}
 When $n$ is even, we know ${\lfloor \frac{n+1}{2}\rfloor} = \frac{n} {2}$. Since $y\in M$ and size of $M$ is equal to $ \frac{n}{2} \cdot n$, it is obviously seen that $i\in \{0,...,\frac{n}{2}-1\}$ when $i  = y / (n+1)$. Similarly, $j\in \{0,...,n\}$ when $j = y \mod (n+1)$.
 \vspace{5mm}
 \begin{lemma}
 Mapping function $\phi_1:   M \rightarrow  R, y \mapsto (i,j)$ is bijective.
 \end{lemma}
- In one-dimension grid, for each $PU_y$, we can denote $y=i\cdot n+j$, where $y \in \{0,...,{\frac{n \cdot (n+1)}{2}}\}$ and $0\leq i, j < n$. From the horner scheme and the quotient-remainder theorem , we know lemma 1 produces one-to-one mapping from $y$ to $(i,j)$. At the same time, given $(i,j)$, $y$ can be uniquely constructed as $y=i\cdot n+j$. Therefore, $y \mapsto (i,j)$ is bijective.
+ In one-dimension grid, for each $PU_y$, we can denote $y=i\cdot n+j$, where $y \in \{0,...,{\frac{n \cdot (n+1)}{2}}\}$ and $0\leq i, j < n$. From the horner scheme, we know lemma 1 produces one-to-one mapping from $y$ to $(i,j)$. At the same time, given $(i,j)$, $y$ can be uniquely constructed as $y=i\cdot n+j$. Therefore, $y \mapsto (i,j)$ is bijective.
 \vspace{5mm}
 
 \begin{definition}
@@ -515,26 +509,118 @@ $\noindent \textit {Example:}$ To illustrate the transformation, Figure~\ref{exa
 Two-dimensional mapping is extended from one-dimensional mapping directly.
 \\Given:
 \begin{eqnarray}
-& N_{1,2} = \{0..n_{1,2}-1\}          & \\
-& R_{1,2} = \{0..\lfloor \frac{n_{1,2}+1}{2}\rfloor-1\} \times \{0..n_{1,2}\}&\\
-& T_{1,2} = \{(a_{1,2},b_{1,2}) \in  N_{1,2}^2 | a_i<=b_{1,2}\}&\\
-& M_{1,2} = \{0.. \lfloor \frac{n_{1,2}+1}{2}\rfloor \times (n_{1,2}+1)-1\}&\\
+& N^2 = N_1\times N_2= \{0..n_1\} \times \{0..n_2\} & \\
+& R^2 = R_1 \times R_2=\{(i_1,j_1), (i_2,j_2)\}\in \{[0..\lfloor \frac{n_1+1}{2}\rfloor-1] \times [0..n_1], [0..\lfloor \frac{n_2+1}{2}\rfloor-1] \times [0..n_2]\}&\\
+& T^2 =T_1\times T_2=\{(i'_1,j'_1),(i'_2,j'_2)\}\in \{ [0,...,n_1]^2, [0,...,n_2]^2\}  | i'_{1,2}<=j'_{1,2}&\\
+& M^2 = \{0.. \lfloor {\frac{n_1+1)}{2}\rfloor}\cdot \lfloor {\frac{n_2+1}{2}\rfloor \cdot (n_1+1)\cdot (n_2+1)}\}&\\
 \end{eqnarray}
-where $N_1,N_2$ are coordinate range, $R_1, R_2$ are rectangular space , $T_1,T_2$ are triangular space  and $M_1,M_2$ are number range in two-dimension.\\
+where $\{N_1,N_2\}$ are set of two dimensional data points with size of $(n_1+1, n_2+1)$ to partition the data grid into $n_1\cdot n_2$ independent cells. $\{R_1, R_2\}$ is rectangular space formed by cell $\{(i_1,j_1), (i_2,j_2)\}$ and each such cell is assigned to a certain $PU_y$ ($y\in M^2$). $\{T_1,T_2\}$ is triangular space formed by original cell $\{(i'_1,j'_1), (i'_2,j'_2)\}$, ($0<i'_1<j'_1\leq n_1,0<i'_2<j'_2\leq n_2\} $)in two dimensional grid. $M^2$ is the total number of cells for computing LRT in  two-dimension grid. Similar as one dimensional grid, we generalize the range mapping scheme by extending the calculation of total cells to $\lfloor {\frac{n_1+1)}{2}\rfloor}\cdot \lfloor {\frac{n_2+1}{2}\rfloor \cdot (n_1+1)\cdot (n_2+1)}$ when either $n_1$ or $n_2$ is odd or even. In the following definitions and lemmas, we won't differentiate the scenario of even and odd number of partitions since we already shown the capability of our generalized form in one dimensional grid.  \\
 
-Mapping function $\phi^2: M^2 \rightarrow R^2 \rightarrow T^2$ does transformation. Horner scheme is applied to get two-dimensional tuple $(x_1,x_2)$. Then $\phi^2$ is used to transform $(x_1,x_2)$ to $(i_1,j_1,i_2,j_2)$.
+\noindent\begin{definition}
+IR Mapping Function
+\begin{flalign*}
+&&\phi_1:&   M^2 \rightarrow  R^2 & \\
+&&y &\mapsto (i_1,j_1)\times (i_2,j_2)
+\end{flalign*}
+ where $i_1 \in \{0,...,\lfloor {\frac{n_1+1)}{2}\rfloor}-1\}$ , $j_1 \in \{0,...,n_1\}$ and $i_2 \in \{0,...,\lfloor {\frac{n_2+1)}{2}\rfloor}-1\}$ , $j_2 \in \{0,...,n_2\}$.
+\end{definition}
+IR (Index to rectangular) mapping function assigns a cell denoted as $\{(i_1,j_1),(i_2,j_2)\}$  in rectangular space $R^2$  to $y$ of $PU_y$  by applying inverse horner scheme, where $y$ is the index of a particular $PU$ and constant value of $n_1\cdot n_2$ is the number of independent cells partitioned in two-dimensional grid. Cell $\{(i_1,j_1),(i_2,j_2)\}$ is a region $(i_1,j_1,i_2 , j_2)$ defined in our pre-computing section ~\ref{sec:mov2} , where $(i_1,j_1)$ is the upper left corner and $(i_2,j_2)$ is the lower right corner.
+
+The mapping function is performed in the following steps:
+(1) $i_1= y mod \frac{n_1+1}{2}$; (2) $y = y / \frac{n_1+1}{2}$ ; (3) $j_1 = y mod (n_1+1)$; (4) $y = y / (n_1+1)$; (5) $i_2= y mod \frac{n_2+1}{2}$; (6) $j_2 = y / (n_2+1)$
+
+From above, we know that $y$ is in the range of $\{0.. \lfloor {\frac{n_1+1)}{2}\rfloor}\cdot \lfloor {\frac{n_2+1}{2}\rfloor \cdot (n_1+1)\cdot (n_2+1)}\}$, by performing the first step (1) using  horner scheme , $i_1$ is generated in the range of $i_1 \in \{0,...,\lfloor {\frac{n_1+1)}{2}\rfloor}-1\}$. And $j_1$ is generated in the range of $\{0,...,n_1\}$. In the step (4), $y$ is recalculated in the range of $\{0,...,\lfloor {\frac{n_2+1)}{2}\rfloor}\cdot (n_2+1)\}$ after we obtain $(i_1,j_1)$. Similarly, $i_2$ is generated in the range of $i_2 \in \{0,...,\lfloor {\frac{n_2+1)}{2}\rfloor}-1\}$ and $j_2$ is generated in the range of $\{0,...,n_2\}$, which is same as the mapping process in one dimensional grid.
+\vspace{5mm}
+\begin{lemma}\label{lemmaphi2}
+Mapping function $\phi_1:   M^2 \rightarrow  R^2, y \mapsto (i_1,j_1,i_2,j_2)$ is bijective.
+\end{lemma}
+ In two-dimension grid, for each $PU_y$, we can denote $y=(i_2\cdot n_2+j_2)\cdot i_1\cdot n_1+j_1$, where $y \in \{0.. \lfloor {\frac{n_1+1)}{2}\rfloor}\cdot \lfloor {\frac{n_2+1}{2}\rfloor \cdot (n_1+1)\cdot (n_2+1)}\}$ with  $0\leq i_1, j_1 < n_1$ and $0\leq i_2, j_2 < n_2$. From the horner scheme , we know $ i_1$ and $j_1$ can be uniquely obtained by given $n_1$ through computing the above step (1), (2) and (3). Similarly, $ i_1$ and $j_1$ are obtained by give $n_2$ through step (4), (5) and (6). This mapping produces one-to-one mapping from $y$ to $(i_1,j_1,i_2,j_2)$. At the same time, given $(i_1,j_1,i_2,j_2)$ , $y$ can be uniquely constructed as $y=(i_2\cdot n_2+j_2)\cdot i_1\cdot n_1+j_1$. Therefore, $y \mapsto (i_1,j_1,i_2,j_2)$ is bijective.
+\vspace{5mm}
+
+\begin{definition}
+RT Mapping Function
+\begin{eqnarray}
+&\phi_2:&   R^2 \rightarrow  T^2  \\
+&(i_1,j_1,i_2,j_2)& \mapsto (i'_1,j'_1,i'_2,j'_2)=
+  \begin{cases}
+   (i_1,i_1+j_1) & \text{if } (i_1+j_1) < n_1 \\
+   (n_1-i_1-1,2n_1-i_1-j_1-1))  & \text{if } (i_1+1) \leq \frac{n_1+1}{2} \\
+   (i_2,i_2+j_2) & \text{if } (i_2+j_2) < n_2 \\
+   (n_2-i_2-1,2n_2-i_2-j_2-1))  & \text{if } (i_2+1) \leq \frac{n_2+1}{2} \\
+  \end{cases}
+\end{eqnarray}
+\end{definition}
+RT (rectangular to triangular) mapping function transforms cell $(i_1,j_1,i_2,j_2)$ in rectangular space to cell $(i'_1,j'_1,i'_2,j'_2)$ in triangular space shown in above equation. This transformation is achieved by satisfying the constraints: $(i_1,j_1)\in \{[0,...,\lfloor (n_1+1)/2] \times [0,...,n_1]\}$,$(i_1,j_1)\in \{[0,...,\lfloor (n_2+1)/2] \times [0,...,n_2]\}$,  $0\leq i'_1 \leq j'_1<n_1$ and  $0\leq i'_2 \leq j'_2<n_2$. To fulfill this constraint, hyperplane $i_1+j_1=n_1$ and $i_2+j_2=n_2$ divide the rectangular space into sub-spaces on two dimensional coordinate system respectively : (a) $i_1+j_1<n_1$ and (b) $i_1+j_1\geq n_1$;(a') $i_2+j_2<n_2$ and (b') $i_2+j_2\geq n_2$ . In (a) and (a'), transformed point $(i'_1,j'_1,i'_2,j'_2)$ is calculated as $(i_1,i_1+j_1,i_2,i_2+j_2)$ . In (b) and (b'), transformed point $(i'_1,j'_1,i'_2,j'_2)$ is calculated as $(n_1-i_1-1,(n_1-i_1-1)+(n_1-j_1))$ (i.e. $(n_1-i_1-1,2n_1-i_1-j_1-1)$) and $(n_2-i_2-1,(n_2-i_2-1)+(n_2-j_2))$ (i.e. $(n_2-i_2-1,2n_2-i_2-j_2-1)$). It is clearly seen that $(i'_1,j'_1,i'_2,j'_2)$ satisfies $0\leq i'_1 \leq j'_1<n_1$ and $0\leq i'_2 \leq j'_2<n_2$ after transformation.
+
+\begin{lemma}
+Mapping function $\phi_2$ transform $(i_1,j_1,i_2,j_2) \in R^2$ to $(i'_1,j'_1,i'_2,j'_2)\in T^2 $, where $i'_1 \in \{0,...,n_1\}$ , $j'_1 \in \{0,...,n_1\}$, $i'_2 \in \{0,...,n_2\}$ and $j'_2 \in \{0,...,n_2\}$.
+\end{lemma}
+It is true that $i_1<n$ and $n_1-i_1-1<n_1$. Also when $(i_1+j_1) < n_1$ and $j'_1=i_1+j_1$, we can get $i'_1\leq j'_1<n_1$. When $(i_1+j_1) \geq n_1$, we get $i'_1\leq j'_1=2n_1-i_1-j_1-1=(n_1-i_1)+(n_1-j_1-1)<n_1$. Therefore,$i'_1 \in \{0,...,n_1\}$, $j'_1 \in \{0,...,n_1\}$ and $i'_1\leq j'_1$. We can derive $i'_2 \in \{0,...,n_2\}$ and $j'_2 \in \{0,...,n_2\}$ similarly.
+
+\begin{lemma}
+Mapping function $\phi_2:   R^2 \rightarrow  T^2, (i_1,j_1,i_2,j_2) \mapsto (i'_1,j'_1,i'_2,j'_2)$ is injective.
+\end{lemma}
+Here we deduce from $(i_1,j_1)$ to $(i'_1,j'_1)$ is injective, then similarly we can  from $(i_2,j_2)$ to $(i'_2,j'_2)$ is injective. In one dimensional situation, We know that each $(i'_1,j'_1)$ has single mapping to $(i_1,j_1)$ and some unnecessary $(i_1,j_1)$ are not processed due to $R^1$ is enlarged. We have $i'_1=i_1, j'_1=i_1+j_1$ when $i_1+j_1<n_1$. Also $i'_1=n_1-i_1-1, j'_1=2n_1-i_1-j_1-1$ when $i_1+j_1\geq n_1$. There is no over-lapping mapped point $(i'_1,j'_1)$ based on the constraint of $i_1+j_1<n_1$ and  $(i_1+1) \leq \frac{(n_1+1)}{2}$. Correspondingly, given $(i'_1,j'_1)$, $(i_1,j_1)$ can be obtained by $i_1=i'_1, j_1=j'_1-i'_1$ or $i_1=n_1-i'_1-1, j_1=i'_1+n_1-j'_1$. However, due to $R^1$ is enlarged space , $(i_1,j_1) \mapsto (i'_1,j'_1)$ is injective. Similarly, $(i_2,j_2) \mapsto (i'_2,j'_2)$ is injective. Therefore, mapping function $\phi_2:   R^2 \rightarrow  T^2, (i_1,j_1,i_2,j_2) \mapsto (i'_1,j'_1,i'_2,j'_2)$ is injective.
+
+\begin{corollary}
+Mapping function $\phi:   M^2 \rightarrow R^2 \rightarrow  T^2,y \mapsto (i'_1,j'_1,i'_2,j'_2)$ is injective.
+\end{corollary}
+From above, we know $M^2  \rightarrow R^2$ (i.e. $y \mapsto (i_1,j_1,i_2,j_2)$) is bijective and $R^2 \rightarrow  T^2$ (i.e. $(i_1,j_1,i_2,j_2) \mapsto (i'_1,j'_1,i'_2,j'_2)$) is injective. Therefore $ M^2  \rightarrow R^2 \rightarrow  T^2$,  $y \mapsto (i'_1,j'_1,i'_2,j'_2)$ is injective.
+
 
 \subsection{K-Dimensional Mapping}
-Similarly, in K-dimension, by given:
+Similarly, in K-dimension, given:
 \begin{eqnarray}
-& N_k = \{0..n_k-1\}          & \\
-& R_k = \{0..\lfloor \frac{n_k+1}{2}\rfloor-1\} \times \{0..n_k\}&\\
-& T_k = \{(a_k,b_k) \in  N_k^2 | a_i<=b_k\}&\\
-& M_k = \{0.. \lfloor \frac{n_k+1}{2}\rfloor \times (n_k+1)-1\}&\\
+& N^k = N_1...\times N_k= \{0..n_1\} \times ...\times \{0..n_k\} & \\
+& R^k = R_1 \times ...\times R_k=\{(i_1,j_1),..., (i_k,j_k)\}\in \{[0..\lfloor \frac{n_1+1}{2}\rfloor-1] \times [0..n_1], \times [0..n_k]\}&\\
+& T^k =T_1\times ...\times T_k=\{(i'_1,j'_1),..,(i'_k,j'_k)\}\in \{ [0,...,n_1]^2,..., [0,...,n_k]^2\}  | i'_{1,..,k}<=j'_{1,...,k}&\\
+& M^k = \{0.. \lfloor {\frac{n_1+1)}{2}\rfloor}...\cdot \lfloor {\frac{n_k+1}{2}\rfloor \cdot (n_1+1)...\cdot (n_k+1)}\}&\\
 \end{eqnarray}
-where $k$ is the number of dimension transformed, $N_k$ is coordinate range , $R_k$ is rectangular space , $T_k$ is triangular space and $M_k$ is number range in K-dimension.\\
+where $\{N_1,...,N_k\}$ are set of k dimensional data points with size of $(n_1+1, ...,n_k+1)$ to partition the data grid into $n_1\cdot...\cdot n_k$ independent k-dimensional hypecubes. $\{R_1,..., R_k\}$ is hyperectangular space formed by hypecube $\{(i_1,j_1,..., i_k,j_k)\}$ and each such hypecube is assigned to a certain $PU_y$ ($y\in M^k$). $\{T_1,...,T_k\}$ is hypetriangular space formed by original hypecube  $\{(i'_1,j'_1, ...,i'_k,j'_k)\}$, ($0<i'_1<j'_1\leq n_1,...,0<i'_k<j'_k\leq n_k\} $)in k dimensional grid. $M^k$ is the total number of cells for computing LRT in  k-dimension grid. Similar as one dimensional grid, we generalize the range mapping scheme by extending the calculation of total cells to $\lfloor {\frac{n_1+1)}{2}\rfloor}\cdot ...\lfloor {\frac{n_k+1}{2}\rfloor \cdot (n_1+1)...\cdot (n_k+1)}$ when $n_1 ,..., n_k$ is odd or even. Same as LRT calculation for two dimensional grid, in the following definitions and lemmas, we won't differentiate the scenario of even and odd number of partitions and won't provide proof. \\
 
-Mapping function $\phi^k: M^k \rightarrow R^k \rightarrow T^k$ performs transformation. Horner's scheme is used to transform a number in $M^k$ to a k-dimensional tuple $(x_1, ...,x_k)$. Then mappings $\phi^k$ performs the translation from each element $x_i$ to $(i_{1,...,k},j_{1,...,k})$.
+\noindent\begin{definition}
+IR Mapping Function
+\begin{flalign*}
+&&\phi_1:&   M^k \rightarrow  R^k & \\
+&&y &\mapsto (i_1,j_1)\times...\times (i_k,j_k)
+\end{flalign*}
+ where $i_1 \in \{0,...,\lfloor {\frac{n_1+1)}{2}\rfloor}-1\}$ , $j_1 \in \{0,...,n_1\}$ ...,$i_k \in \{0,...,\lfloor {\frac{n_k+1)}{2}\rfloor}-1\}$ , $j_k \in \{0,...,n_k\}$.
+\end{definition}
+IR (Index to rectangular) mapping function assigns a hypecube denoted as $\{(i_1,j_1,...,i_k,j_k)\}$  in hyperectangular space $R^k$  to $y$ of $PU_y$  by applying inverse horner scheme, where $y$ is the index of a particular $PU$ and constant value of $n_1\cdot...\cdot n_k$ is the number of independent hypecubes partitioned in k-dimensional grid. 
+
+\begin{lemma}\label{lemmaphi2}
+Mapping function $\phi_1:   M^2 \rightarrow  R^2, y \mapsto (i_1,j_1,i_2,j_2)$ is bijective.
+\end{lemma}
+
+\begin{definition}
+RT Mapping Function
+\begin{eqnarray}
+&\phi_2:&   R^k \rightarrow  T^k  \\
+&(i_1,j_1,...,i_k,j_k)& \mapsto (i'_1,j'_1,...,i'_k,j'_k)=
+  \begin{cases}
+   (i_1,i_1+j_1) & \text{if } (i_1+j_1) < n_1 \\
+   (n_1-i_1-1,2n_1-i_1-j_1-1))  & \text{if } (i_1+1) \leq \frac{n_1+1}{2} \\
+   ...
+   (i_k,i_k+j_k) & \text{if } (i_k+j_k) < n_k \\
+   (n_k-i_k-1,2n_k-i_k-j_k-1))  & \text{if } (i_k+1) \leq \frac{n_k+1}{2} \\
+  \end{cases}
+\end{eqnarray}
+\end{definition}
+RT (rectangular to triangular) mapping function transforms hypecube $(i_1,j_1,...,i_k,j_k)$ in hyperrectangular space to $(i'_1,j'_1,...,i'_k,j'_k)$ in hypetriangular space shown in above equation. This transformation is achieved by satisfying the constraints: $(i_1,j_1)\in \{[0,...,\lfloor (n_1+1)/2] \times [0,...,n_1]\}$,...,$(i_k,j_k)\in \{[0,...,\lfloor (n_k+1)/2] \times [0,...,n_k]\}$,  $0\leq i'_1 \leq j'_1<n_1$ ,...,  $0\leq i'_k \leq j'_k<n_k$. To fulfill this constraint, hyperplane $i_1+j_1=n_1$, ..., $i_k+j_k=n_k$ divide the hyperectangular space into sub-spaces on k dimensional coordinate system respectively : (a) $i_1+j_1<n_1$ and (b) $i_1+j_1\geq n_1$;...;$(a^k)$ $i_k+j_k<n_k$ and $(b^k)$ $i_k+j_k\geq n_k$ . In (a),..., $(a^k)$, transformed point $(i'_1,j'_1,...,i'_k,j'_k)$ is calculated as $(i_1,i_1+j_1,...,i_k,i_k+j_k)$ . In (b),..., $(b^k)$, transformed point $(i'_1,j'_1,...,i'_k,j'_k)$ is calculated as $(n_1-i_1-1,(n_1-i_1-1)+(n_1-j_1))$ (i.e. $(n_1-i_1-1,2n_1-i_1-j_1-1)$) ,..., $(n_k-i_k-1,(n_k-i_k-1)+(n_k-j_k))$ (i.e. $(n_k-i_k-1,2n_k-i_k-j_k-1)$). It is clearly seen that $(i'_1,j'_1,...,i'_k,j'_k)$ satisfies $0\leq i'_1 \leq j'_1<n_1$ ,..., $0\leq i'_k \leq j'_k<n_k$ after transformation.
+
+\begin{lemma}
+Mapping function $\phi_2$ transform $(i_1,j_1,...,i_k,j_k) \in R^k$ to $(i'_1,j'_1,...,i'_k,j'_k)\in T^k $, where $i'_1 \in \{0,...,n_1\}$ , $j'_1 \in \{0,...,n_1\}$, ...,$i'_k \in \{0,...,n_k\}$ and $j'_k \in \{0,...,n_k\}$.
+\end{lemma}
+
+\begin{lemma}
+Mapping function $\phi_2:   R^k \rightarrow  T^k, (i_1,j_1,...,i_k,j_k) \mapsto (i'_1,j'_1,...,i'_k,j'_k)$ is injective.
+\end{lemma}
+
+\begin{corollary}
+Mapping function $\phi:   M^k \rightarrow R^k \rightarrow  T^k,y \mapsto (i'_1,j'_1,...,i'_k,j'_k)$ is injective.
+\end{corollary}
+
+
 
 \begin{algorithm}[t!]
 \label{RM}
@@ -598,19 +684,19 @@ Similarly, the computation of set $B,X,Y$ is listed as the following:
 \begin{figure}[h]
 \centering
 \subfloat[Pre-computation of set A  ]{
-\includegraphics[width=0.4\linewidth]{figtkde/prea}
+\includegraphics[width=0.25\linewidth]{figtkde/prea}
 \label{prec:subfig1}
 }
 ~~\subfloat[Pre-computation of set B]{
-\includegraphics[width=0.4\linewidth]{figtkde/preb}
+\includegraphics[width=0.25\linewidth]{figtkde/preb}
 \label{prec:subfig2}
 }\\
 ~~\subfloat[Pre-computation of set X]{
-\includegraphics[width=0.4\linewidth]{figtkde/prex}
+\includegraphics[width=0.25\linewidth]{figtkde/prex}
 \label{prec:subfig3}
 }
 ~~\subfloat[Pre-computation of set Y]{
-\includegraphics[width=0.4\linewidth]{figtkde/prey}
+\includegraphics[width=0.25\linewidth]{figtkde/prey}
 \label{prec:subfig4}
 }
 \caption{pre-computation of set A, B, X and Y}\label{prec}
@@ -1045,12 +1131,12 @@ of the data into shared memory but has achieved only a modest speed up. The
 other attempt of~\cite{zhao} applied their own implementation of a spatial
 scan statistic program on the GPU to the epidemic disease dataset. This solution is only applicable to its special disease scenario.
 In each of these cases, we believe there is further room for optimising the
-algorithms for the parallel architectures by devising the fine-grained parallelism strategies.
-
-Furthermore, all the existing parallel solutions perform
+algorithms for the parallel architectures by devising the fine-grained parallelism strategies. Furthermore, these existing parallel solutions perform
 LRT tests in a circular or cylindrical way, not in a grid-based scenario. Our parallel
 solution is different and provides a fully paralleled template for
-1EXP-LRT computation in a grid.
+1EXP-LRT computation in a grid. 
+
+Recently there are some work ~\cite{Power,Neil16,xzhou16,Matheny16} using LRT Framework  to solve the big computation cost, however, they focus on improving pruning strategy, choosing subset or using sampling strategy , not utilizing parallel and distributed architecture to to speed up performance. 
 
 \section{Conclusion}\label{CC}
 The Likelihood Ratio Test Statistic (LRT) is a state-of-the-art method for identifying hotspots or anomalous
