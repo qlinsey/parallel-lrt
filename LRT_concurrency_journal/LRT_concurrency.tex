@@ -43,7 +43,7 @@
 
 For larger grids with a grid size of more than $64\times 64$ cells, a na\"ive implementation of LRT becomes intractable~\cite{jour} and it takes around several days to execute Grid(64,64) on a single-core CPU.
 
-In this paper, we propose a parallel processing scheme for LRT computations for one parameter exponential (1EXP) distribution for multi-dimensional spatial data grids. The parallel processing scheme transforms LRT computations to a completely balanced embarrassingly parallel problem utilising a novel range mapping scheme. The new range mapping scheme relies on a dynamic pre-computation algorithm, and exhibits a worst-case complexity of $\bigo(n^2)$  for two dimensional spatial data-grids improving the complexity class by an order of two. Experiments were conducted for various computer architectures and platforms including shared-memory multi-core machines, multi-GPGPU computers, and the EC2 cloud computer. Extensive experiments are provided to demonstrate the utility of this approach and extensive performance analysis is given.
+In this paper, we propose a parallel processing scheme for LRT computations for one parameter exponential (1EXP) distribution for multi-dimensional spatial data grids. The parallel processing scheme transforms LRT computations to a balanced embarrassingly parallel problem utilising a novel range mapping scheme. The new range mapping scheme relies on a dynamic pre-computation algorithm, and exhibits a worst-case complexity of $\bigo(n^2)$  for two dimensional spatial data-grids improving the complexity class by an order of two. Experiments were conducted for various computer architectures and platforms including shared-memory multi-core machines, multi-GPGPU computers, and the EC2 cloud computer. Extensive experiments are provided to demonstrate the utility of this approach and extensive performance analysis is given.
 In the experiments we could achieve speedups up to $20,000$ times using our parallel processing scheme on Grid $(1000,1000)$.
 }
 
@@ -134,12 +134,11 @@ For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson dist
 
 In this section, we demonstrate two different parallel strategies for performing LRT statistics in a one-dimensional data grid by example. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In the example, we simulate the architectural environment of~\cite{apweb}, and illustrate its drawbacks. The non-overlapping Enumeration strategy, called Range Mapping scheme, will be presented in this paper to overcome the limitations of the Overlapping Enumeration strategy. For simplicity, we will describe the strategies on an abstract parallel machine not detailing its implementation on a concrete parallel platform.  The abstract parallel machine has a fixed number of parallel units (PU) whose memory for each PU is finite.
 
-EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT of each interval for the one-dimensional spatial data grid. To find the outlier, we enumerate all intervals that can be spawned over the one-dimensional data grid by performing LRT calculation explained in above section ~\ref{BG}. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$ and there are $n+1$ points in one dimensional grid.  There are ${\frac{4 \cdot (4+1)}{2}}=2\times 5=10$ intervals in total, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds. Figure ~\ref{example:subfig11} visualizes some intervals among above five data points.
+EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT of each interval for the one-dimensional spatial data grid. To find the outlier, we enumerate all intervals that can be spawned over the one-dimensional data grid by performing LRT calculation explained in above section ~\ref{BG}. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$ and there are $n+1$ points in one dimensional grid.  There are ${\frac{5 \cdot (5+1)}{2}}=15$ intervals in total, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds. Figure ~\ref{example:subfig11} visualizes some intervals among above five data points.
 
 To illustrate how to compute LRT for each interval in this example, we assume each interval independently follows poisson distribution and the calculation of LRT is given in last part of section ~\ref{BG} of this paper. The formula is repeated here: $c(m_l log ({m_l\over {b_l}})+ (1-m_l)log({{1-m_l}\over {1-b_l}}))$, where $c$ is a constant factor and $l$ denotes interval ~(c.f. \cite{DagMaxmize}). Another detailed similar example in two-dimensional grid is provided in \cite{dke}.Therefore, to compute LRT value of an interval in the formula, $m_l$ (i.e. success count) and $b_l$ (i.e. population count) are required. Table ~\ref{tab:mb} provides sample value of $(m_l,b_l)$ for each independent interval. To compute the LRT of an interval, there are two different kind of calculations: (a) compute LRT of a single independent interval $l$, (b) compute LRT of an interval $l$, which is union of multiple non-overlapped intervals $l=l_1\cup l_2\cup...l_t$. For example, to obtain the LRT value of a single independent interval $l_{(0,0)}$, the computation is: $lrt_{(0,0)}=2\cdot log({2\over 10})+(1-2)log({{1-2}\over {1-10}})=-1.0$.  To obtain a larger interval interval  $l_{(0,1)}$ , which is the union of independent interval $l_{(0,0)}$ and $l_{(1,1)}$,  $(m_l, b_l)$ needs to be aggregated first. Since the data here follows poisson distribution, we know from above that $m_{l(0,1)}=m_{l(0,0)}+m_{l(1,1)}=2+2=4$ and $b_{l(0,1)}=b_{l(0,0)}+b_{l(1,1)}=10+10=20$ . Thus $lrt_{(0,1)}=4\cdot log({4\over 20})+(1-4)log({{1-4}\over {1-20}})=-0.9$. The LRT of each sub-intervals can be obtained using one of the two approaches. Since $m_l$ and $b_l$ need to be aggregated for calculating LRTs of some sub-intervals, dynamic pr-computation will be used in our following strategies to fully parallelize the computation.
 
 From above, we know the computation of LRT for each interval. Now we move to present the strategies of parallelizing LRT computation in a data grid.  We assume the parameters $m_l$ and $b_l$ of each independent single interval takes up 4 bytes of data storage, respectively. Let's assume that each parallel unit of the abstract parallel machine has at most 16 bytes of data storage. Hence, each parallel unit is limited to compute at most two intervals.
-
 
 \paragraph{Overlapping Enumeration Parallel Strategy}
 Since each parallel unit of the parallel machine can only maximally store and process $16$ bytes of data and the statistics values of each single independent interval takes up $8$ bytes (i.e. 4 bytes of $m_l$ + 4 bytes of $b_l$ = 8 bytes ), therefore the maximum number of independent interval can be processed is $\frac{max\textunderscore allowed \textunderscore bytes\textunderscore pu }{bytes\textunderscore of\textunderscore \textunderscore interval}=\frac{16}{8}=2$ for a single parallel unit at once. In the overlapping strategy ~\cite{apweb}, each $PU_i$ is associated to $k$ continuous intervals. For this example, each PU enumerates every two continuous overlapping intervals (i.e., the interval $(i,j)$ and the interval $(i,j+1)$ by a single parallel unit.  The $LRTs$ of the remaining intervals will be sequentially processed and merged by the CPU (c.f.~\cite{apweb}). The reasons are: (a)any interval with length $|l|>k$ (k=2 in this example) cannot be fitted to a PU due to lack of memory of parallel unit; (b)every two non-continuous single intervals processed on a PU cannot process intervals optimally. On the other hand, if PU store $k$ continuous single intervals, it can process all of the ${\frac{k \cdot (k+1)}{2}}$ sub-intervals on a single PU. Table~\ref{exampletable} illustrates the allocation of continuous intervals to parallel units, and the allocation of the rest intervals to the CPU.  For example, $PU_0$ is assigned the work to compute the LRT for the intervals $\{l_{(0,0)},l_{(0,1)}\}$, and $PU_1$ is assigned for computing the LRT for intervals $\{l_{(1,1)},l_{(1,2)}\}$. Figure~\ref{example:subfig11} illustrates the enumeration of some intervals for those $5$ data points by applying over-lapping strategy.
@@ -164,14 +163,100 @@ The aforementioned approach has a few drawbacks: First, non-continuous intervals
 \label{lrt-compute}
 \end{table}
 
-\paragraph{Non-Overlapping Enumeration Parallel Strategy}
 
-Our new scheme employs a pre-computation strategy is for computing $LRT$  on the abstract parallel machine. Moreover, Horner scheme is used to allocate certain interval to certain $PU$. The Horner scheme is used to describe elements in a finite discrete multi-dimensional space to a single number and vice versa. Examples are conversion of numbers in different number systems etc.
+%BFS: find better name for this scheme
+\paragraph{Inclusion-Exclusion Parallel Strategy}
 
+To overcome the issues of the overlapping enumeration scheme, we need to solve two challenges:
+First, how can we compute the LRT of a single interval of a spatial data-grid in $\bigo(1)$. Second, how
+can we enumerate intervals so that we can equally distribute them on parallel units.
+
+%BFS: explain inclusion/exclusion here.
+The first challenge can be solved by relying on the 1EXP property. For example, the parameters of the interval $(i,j)$ can be deduced by having the calculation:
+
+% BFS: please explain scheme for one-dimensional case here.
+%% - Explain inclusion/exclusion scheme for one-dimensional data-grid here
+% - Draw picture and explain
+% - Please double-check equation below
+The region $A_j$ counts all the events from the left most data-cell in the spatial grid to position $j$, i.e., $A_j = O_0 + \ldots + O_j$. The region $B_i$ counts all the events from the right most data-cell to position $i$, i.e., $B_i = O_4 + O_3 +  \ldots + O_{j}$. The region $G = O_0 + \ldots + O_4$ denotes the whole spatial grid.
+\begin{equation}
+I_{ij} = A_j  + B_i - G
+\end{equation}
+For an interval $I_{ij}$, the counts can be deduced by applying the inclusion/exclusion principle on the set count.  The sum of $|A_i|$ + $|B_j|$ over-counts the interval by $G$. The computation of $A_j$ and $B_i$ can be done in linear time, i.e., $\bigo(n)$, as a pre-computation step. The actual computation of an interval is reduced to one addition and subtraction, hence, the computation of a single interval is performed in
+$\bigo(1)$.
+ %BFS: Please explain in more detail how to apply the count for LRT computation with the counts
+
+For balancing the workload, we require that intervals are equally distributed on parallel units. We solve this problem by introducing a mapping that maps a representative number to an interval in the spatial data grid. Each representative number corresponds to a single interval of the spatial data grid. The representative numbers are tightly packed from zero to the $\frac{n(n+1)}{2}-1$ so that the we can distributed representative numbers equally on parallel units with ease.
+
+For example, a representative numbers from $0$ to $9$ is mapped to an interval $(i,j)$,  where $0 \leq i \leq j < 4$ where $n$ is $4$.  One possible construction of such mapping is the following,
+\begin{equation*}
+\begin{array}{lllll}
+0 \mapsto (0,0)  &
+1 \mapsto (0,1)  &
+2 \mapsto (0,2)  &
+3 \mapsto (0,3)  &
+4 \mapsto (1,1)  \\
+5 \mapsto (1,2)  &
+6 \mapsto (1,3)  &
+7 \mapsto (2,2) &
+8 \mapsto (2,3) &
+9 \mapsto (3,3) \\
+\end{array}
+\end{equation*}
+utilizing a simple C++ fragment as shown in Fig.~\ref{alg:explicit-map}.
+\begin{figure}
+\begin{lstlisting}{language=C++}
+std::vector<std::pair<int,int> map(10);
+for(int i=0;i<2;i++)
+ for(int j=i;j<4;j++)
+  map[k++]=std::pair<int,int>(i,j);
+\end{lstlisting}
+\caption{Explicit storage of map that translate a representative number to an interval.}
+\label{alg:explicit-map}
+\end{figure}
+The representative numbers are important to achieve a long balance among the parallel units.  For example, the number range of the representative numbers from $0$ to $9$ can be equally divided. Let's assume a parallel unit can process three intervals at most. Hence, we require 5 parallel units to perform the computation of the LRT where each parallel units processes exactly 2 intervals. The intervals with representative numbers from $0$ to $1$ are mapped to the first parallel unit, intervals with representative numbers from $2$ to $3$ are mapped to the second parallel unit, and so forth. More general, if there are $p$ parallel units and $\frac{n(n+1)}{2}$ intervals, a parallel unit  approximately processes $\left \lfloor \frac{n(n+1)}{2 p} \right\rfloor$ intervals.
+
+Unfortunately, the explicit construction of the array map as illustrated in Fig.~\ref{alg:explicit-map} renders to be unviable in the presence of multi-dimensional large spatial data grids. A one-dimensional spatial data grid exhibits a the space worst-case complexity of $\bigo(n^2)$ for computing the map. For a multi-dimensional spatial data grid, the space worst-case complexity grows exponential with the number of dimensions, i.e., $\bigo(n^{2k})$ where $k$ is the dimensionality of the spatial data grid.  Hence, the question arises how to find a closed form for mapping a representative numbers to an interval without the need of an explicit map, i.e., we would like to have a runtime and space worst-case complexity of $\bigo(1)$ to convert representative numbers to intervals.
+
+To get a handle on the problem, we convert a representative number from the range between $0$ and $ \lfloor \frac{n(n+1)}{2}-1 \rfloor$ to intervals as follows: First, we convert the representative number to a two-digit number system where the first base $b_0$ is $n+1$ and the second base $b_1$ is $ \lfloor \frac{n+1}{2} \rfloor$. We refer to the two-digits as a rectangular space. Given a representative number $r $, the number $r$ is expressed by $r = d_1 b_0 + d_0$ where $d_1 d_0$ are the digits of the representative number in the two-digit number system. Note that the digit $d_1$ ranges from $0$ to $ \lfloor \frac{n+1}{2} \rfloor$ and the second digit ranges from $0$ to $n$.  The conversion follows the Horner scheme~\cite{refernce-for-conversion-needed} for number conversion, i.e.,
+\begin{align*}
+d_0 &= r\mod (n+1) \\
+d_1 &= (r \div n) \mod \frac{n+1}{2}
+\end{align*}
+The two-digit number system has exactly $\frac{n(n+1)}{2}$ numbers available. However, the two digits of a representative number in the two-digit number system with base $n$ and $\frac{n+1}{2}$ do not represent intervals yet. There could be numbers whose first digit is larger than the second digit and the constraints $0 \leq i \leq j < n$ is violated using one of the digits for $i$ and $j$, respectively.  Hence, we require a further mapping that maps the two digits of a representative number to intervals.  The following mapping suffices the interval condition,
+\begin{equation*}
+(d_1, d_0) \mapsto
+\begin{cases}
+(d_1, d_1 + d_0), & \mbox{if $d_1 + d_0 < n$,} \\
+(n - d_1 - 1, 2 n - d_1 - d_0 -1), & \mbox{if $(d_1 + 1) \leq \frac{n+1}{2}$,} \\
+\end{cases}
+\end{equation*}
+For our example, we can convert a representative number to the two-digit number system, subsequently convert the two digits to intervals as follows,
+\begin{equation*}
+\begin{array}{|l|l|l|l|l|}
+\hline
+0 \mapsto (0,0)  \mapsto (0,0) &
+1 \mapsto (0,1) \mapsto (0,1)  &
+2 \mapsto (0,2)  \mapsto (0,2) &
+3 \mapsto (0,3)  \mapsto (0,3) &
+4 \mapsto (1,0) \mapsto (1,1) \\
+\hline
+5 \mapsto (1,1) \mapsto (1,2)&
+6 \mapsto (1,2) \mapsto (1, 3)&
+7 \mapsto (1,4)  \mapsto (2,2) &
+8 \mapsto (1,3) \mapsto (2,3)  &
+9 \mapsto (0,4)  \mapsto (3,3) \\
+\hline
+\end{array}
+\end{equation*}
+
+applying the Honer Scheme conversion first and then the mapping function for converting the two digits to intervals. In the following we refer to the interval space as a triangular space.
+
+% BFS: adapt Reword
 If we map each interval $l_{i,j}$ as a point $(i,j)$ and plot these points onto two-dimensional space, a triangular shape is formed. In Figure~\ref{example:subfig12}, all of the $10$ intervals in this example forms a triangle shape enclosed by points ${(0,0),(3,3),(0,3)}$, (i.e. intervals: ${l_{(0,0)},l_{(3,3)},l_{(0,3)}}$). We notice that the total number of intervals is the product of $(n+1)$ and ${\frac{(n)}{2}}$. A rectangular shape can be formed by this product: $[width,height]=[n+1,{\frac{n}{2}}]$. In this example, $\{{(0,0)},{(0,1)},{(1,4)},{(0,4)}\}$ forms a rectangle $R_1$ and it has the exact same number of points as the formed triangular shape $R_2$. Therefore, each point in this rectangle can be mapped to one point in the triangle space. This means each interval in the one-dimensional grid has one-to-one mapping from triangular space to rectangular space (Please see Table ~\ref{ex-nonoverlap})
 
 To allocate an interval $l_{(i,j)}$ to a certain $PU_y$ , horner scheme can be used for mapping $y$ to $(i,j)$ and vice versa. To show how horner scheme works, we denote:
-$f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}, where $f(x)$ is described in a polynomial form with coefficients $(a_0,a_1,...,a_n)$ within certain field . Such $f(x)$ can be re-written in the form: $f(x)= (x-a)g(x)+r$, where the incomplete fraction is $g(x)=b_{n-1}x^{n-1}+...+b_0$ and $r$ is the remainder. See the table ~\ref{tab:coff} for mapping coefficient $b_i$ to $a_i$. For example,in the form of $f(x)=a_0+x(a_1+x(a_2+...+x(a_{n-1}+a_nx)))$, the incomplete fraction $a_1+x(a_2+...+x(a_{n-1}+a_nx)))$ and the remainder $a_0$ can be obtained by given x. To illustrate in more detail, if giving the value of $y\in \{0,1,3,4,5\}$ in one dimension  to map to $(i,j)$, where $0=<i,j<n$, in two dimension, we denote $y=i\cdot n+j$. Using horner scheme, we can derive the fraction $i$ and remainder $j$ uniquely by computing $i=y/n$ and $j=y mod n$. Therefore, for a certain $PU_y$, where $y\in \{0,...,\frac{n \cdot (n+1)}{2}\}$  a corresponding point $(i,j)$ can be obtained by: $i= y /(n+1)$ and $j=y mod (n+1)$ , where $i\in \{0,...,\frac{n}{2}-1\}$ and $j\in\{0,...,n\} $. %More detail how the conversion works here
+$f(x)= a_nx^n+ ...+ a_1x+ a_0$ ~\cite{horner}, where $f(x)$ is described in a polynomial form with coefficients $(a_0,a_1,...,a_n)$ within certain field . Such $f(x)$ can be re-written in the form: $f(x)= (x-a)g(x)+r$, where the incomplete fraction is $g(x)=b_{n-1}x^{n-1}+...+b_0$ and $r$ is the remainder. See the table ~\ref{tab:coff} for mapping coefficient $b_i$ to $a_i$. For example, in the form of $f(x)=a_0+x(a_1+x(a_2+...+x(a_{n-1}+a_nx)))$, the incomplete fraction $a_1+x(a_2+...+x(a_{n-1}+a_nx)))$ and the remainder $a_0$ can be obtained by given x. To illustrate in more detail, if giving the value of $y\in \{0,1,3,4,5\}$ in one dimension  to map to $(i,j)$, where $0=<i,j<n$, in two dimension, we denote $y=i\cdot n+j$. Using horner scheme, we can derive the fraction $i$ and remainder $j$ uniquely by computing $i=y/n$ and $j=y mod n$. Therefore, for a certain $PU_y$, where $y\in \{0,...,\frac{n \cdot (n+1)}{2}\}$  a corresponding point $(i,j)$ can be obtained by: $i= y /(n+1)$ and $j=y mod (n+1)$ , where $i\in \{0,...,\frac{n}{2}-1\}$ and $j\in\{0,...,n\} $. %More detail how the conversion works here
 
  \begin{table}[t]
 \centering \caption{ coefficient $a_i$ and $b_i$ \label{tab:coff}}
@@ -252,7 +337,7 @@ $l_{(1,3)}$\\
 \label{ex-nonoverlap}
 \end{table}
 
-\subsection{Dynamic Pre-computation}
+\subsection{Dynamic Pre-computation of Counts for Two-Dimensional Grids}
 \label{sec:mov2}
 From section~\ref{BG}, we know the log-likelihood statistic (LRT) computation on 1EXP family is simplified to aggregate the statistic values from a given region $R$ (denoted as $\sum $). The fraction of the total from actual measurement and baseline measurement $m_R,b_R$ are obtained based on $\sum R$ without direct computation of the complement of $R (i.e. \bar R)$. After collecting the aggregated statistic values $(m_R,b_R)$, theorem~\ref{thm1} is applied to get the LRT value of region $R$.
 
@@ -586,7 +671,7 @@ IR Mapping Function
 \end{flalign*}
  where $i_1 \in \{0,...,\lfloor {\frac{n_1+1)}{2}\rfloor}-1\}$ , $j_1 \in \{0,...,n_1\}$ ...,$i_k \in \{0,...,\lfloor {\frac{n_k+1)}{2}\rfloor}-1\}$ , $j_k \in \{0,...,n_k\}$.
 \end{definition}
-IR (Index to rectangular) mapping function assigns a hypecube denoted as $\{(i_1,j_1,...,i_k,j_k)\}$  in hyperectangular space $R^k$  to $y$ of $PU_y$  by applying inverse horner scheme, where $y$ is the index of a particular $PU$ and constant value of $n_1\cdot...\cdot n_k$ is the number of independent hypecubes partitioned in k-dimensional grid. 
+IR (Index to rectangular) mapping function assigns a hypecube denoted as $\{(i_1,j_1,...,i_k,j_k)\}$  in hyperectangular space $R^k$  to $y$ of $PU_y$  by applying inverse horner scheme, where $y$ is the index of a particular $PU$ and constant value of $n_1\cdot...\cdot n_k$ is the number of independent hypecubes partitioned in k-dimensional grid.
 
 \begin{lemma}\label{lemmaphi2}
 Mapping function $\phi_1:   M^2 \rightarrow  R^2, y \mapsto (i_1,j_1,i_2,j_2)$ is bijective.
@@ -1134,9 +1219,9 @@ In each of these cases, we believe there is further room for optimising the
 algorithms for the parallel architectures by devising the fine-grained parallelism strategies. Furthermore, these existing parallel solutions perform
 LRT tests in a circular or cylindrical way, not in a grid-based scenario. Our parallel
 solution is different and provides a fully paralleled template for
-1EXP-LRT computation in a grid. 
+1EXP-LRT computation in a grid.
 
-Recently there are some work ~\cite{Power,Neil16,xzhou16,Matheny16} using LRT Framework  to solve the big computation cost, however, they focus on improving pruning strategy, choosing subset or using sampling strategy , not utilizing parallel and distributed architecture to to speed up performance. 
+Recently there are some work ~\cite{Power,Neil16,xzhou16,Matheny16} using LRT Framework  to solve the big computation cost, however, they focus on improving pruning strategy, choosing subset or using sampling strategy , not utilizing parallel and distributed architecture to to speed up performance.
 
 \section{Conclusion}\label{CC}
 The Likelihood Ratio Test Statistic (LRT) is a state-of-the-art method for identifying hotspots or anomalous
