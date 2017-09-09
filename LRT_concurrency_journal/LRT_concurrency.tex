@@ -168,24 +168,36 @@ The aforementioned approach has a few drawbacks: First, non-continuous intervals
 \paragraph{Inclusion-Exclusion Parallel Strategy}
 
 To overcome the issues of the overlapping enumeration scheme, we need to solve two challenges:
-First, how can we compute the LRT of a single interval of a spatial data-grid in $\bigo(1)$. Second, how
+First, how can we compute the LRT of an interval of a spatial data-grid in $\bigo(1)$. Second, how
 can we enumerate intervals so that we can equally distribute them on parallel units.
 
 %BFS: explain inclusion/exclusion here.
-The first challenge can be solved by relying on the 1EXP property. For example, the parameters of the interval $(i,j)$ can be deduced by having the calculation:
+The first challenge can be solved by relying on the 1EXP property and the LRT value of the interval $(i,j)$ can be deduced from Theorem 1. If the statistics of $m_l, b_l$ in interval $(i,j)$ is obtained, the LRT value can be calculated by performing function $g_e,G,B_e$ on $m_l, b_l$. In above, we already know how to compute LRT for an interval $(i,j)$. If any interval $(i,j)$ is composed of $k$ non-overlapped sub-intervals $(i_1,j_1),...,(i_k,j_k)$, then we can get $m_l=\sum_{1}^{k} m_k$ and $b_l=\sum_{1}^{k} b_k$ from each non-overlapped sub-interval to calculate for LRT value $lrt_{(ij)}$
 
 % BFS: please explain scheme for one-dimensional case here.
 %% - Explain inclusion/exclusion scheme for one-dimensional data-grid here
 % - Draw picture and explain
 % - Please double-check equation below
-The region $A_j$ counts all the events from the left most data-cell in the spatial grid to position $j$, i.e., $A_j = O_0 + \ldots + O_j$. The region $B_i$ counts all the events from the right most data-cell to position $i$, i.e., $B_i = O_4 + O_3 +  \ldots + O_{j}$. The region $G = O_0 + \ldots + O_4$ denotes the whole spatial grid.
+Let's assume interval $A_j$ counts all the events from the left most data-interval (i.e. $O_0$) in the one dimensional spatial grid to position $j$, i.e., $A_j = O_0 + \ldots + O_j$. The interval $B_i$ counts all the events from the right most data-interval to position $i$, i.e., $B_i = O_4 + O_3 +  \ldots + O_{j}$. The region $G = O_0 + \ldots + O_4$ denotes the whole spatial grid (see Fig. ~\ref{inex1d}). We can get statistical value for interval $l_{(i,j)}$ from the following, denoted as $I_{ij}$:
 \begin{equation}
 I_{ij} = A_j  + B_i - G
 \end{equation}
 For an interval $I_{ij}$, the counts can be deduced by applying the inclusion/exclusion principle on the set count.  The sum of $|A_i|$ + $|B_j|$ over-counts the interval by $G$. The computation of $A_j$ and $B_i$ can be done in linear time, i.e., $\bigo(n)$, as a pre-computation step. The actual computation of an interval is reduced to one addition and subtraction, hence, the computation of a single interval is performed in
-$\bigo(1)$.
+$\bigo(1)$.  In Figure ~\ref{par:subfig1}, it shows four interval composed by five points and counts of $m_l,b_l$ for $O_i$ are shown in Figure ~\ref{par:subfig2}. For example, for interval $I_{13}=A_3+B_1-G$, we can get $m_{13}=(2+2+15)+(2+15+3)-(2+2+15+3)=17$ and $b_{13}=(10+8+20)+(8+6+2)-(10+8+20+2)=28$. From above, we know the LRT value of $l_{(1,3)}$ is calculated as: $lrt_{(1,3)}=m_{13}log(\frac{m_{13}}{b_{13}}+(1-m_{13})log(\frac{1-m_{13}}{1-b_{13}})=17\cdot log(17/28)-16\cdot log(16/27)=-0.11$
  %BFS: Please explain in more detail how to apply the count for LRT computation with the counts
 
+\begin{figure}[t]
+\centering
+\subfloat[(a) inclusive exclusive strategy for 4 intervals ]{
+\includegraphics[width=0.4\linewidth]{figtkde/inclusiveex1d.png}
+\label{par:subfig1}
+}
+~~\subfloat[(b) $m_l,b_l$ count for each interval ]{
+\includegraphics[width=0.4\linewidth]{figtkde/inex1dtable.png}
+\label{par:subfig2}
+}\\
+\caption{Example of Inclusive Exclusive Parallel Strategy\label{inex1d}}
+\end{figure}
 For balancing the workload, we require that intervals are equally distributed on parallel units. We solve this problem by introducing a mapping that maps a representative number to an interval in the spatial data grid. Each representative number corresponds to a single interval of the spatial data grid. The representative numbers are tightly packed from zero to the $\frac{n(n+1)}{2}-1$ so that the we can distributed representative numbers equally on parallel units with ease.
 
 For example, a representative numbers from $0$ to $9$ is mapped to an interval $(i,j)$,  where $0 \leq i \leq j < 4$ where $n$ is $4$.  One possible construction of such mapping is the following,
