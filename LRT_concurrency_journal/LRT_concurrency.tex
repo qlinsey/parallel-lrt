@@ -124,7 +124,7 @@ where  $T(\cdot)$ is some measurable function, $a(\phi)$ is a function of some k
 \label{thm1}
 \end{theorem}
 Parameter $m_R$ is the fraction measurement of Region $R$ in total and $b_R$ is the fraction of baseline measure of Region $R$ in total. Correspondingly, $1-m_R$ is the fraction measurement of Region $\bar R$ in total and $1-b_R$ is the fraction of baseline measure of Region $R$ in total. Parameters $m_R$  and $b_R$ are important measurements to calculate the statistic of 1EXP. More information about the functions $g_e$, $G$ and $B_e$ can be foudn in~\cite{DagMaxmize}.
-For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson distribution with baseline $b$ and intensity $\lambda$, then a random variable $x \sim Poisson(\lambda \mu)$ is a member of 1EXP with $T(x)=x/\mu$, $\Phi=1/\mu$, $a(\Phi)=\Phi$, $\theta=log(\lambda)$, $B_e{\theta}=exp(\eta)$, $g_e{(x)}=log(x)$. For any regions $R$ and $\bar R$, $m_R$ and $m_{\bar R}$ are independently Poisson distributed with a mean of $\{exp(\theta_R)b_R\}$ and $\{exp(\theta_{\bar R})b_{\bar R}\}$, respectively. Then, $b_R={b_R\over {b_R+b_{\bar R}}}$ and $m_R={m_R\over {m_R+m_{\bar R}}}$. The log-likelihood ratio is calculated by: $c(m_R log ({m_R\over {b_R}})+ (1-m_R)log({{1-m_R}\over {1-b_R} }))$~(c.f. \cite{DagMaxmize}). The closed-form formula for LRT generalizes to the 1EXP family of distributions~\cite{DagMaxmize}.
+For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson distribution with baseline $b$ and intensity $\lambda$, then a random variable $x \sim Poisson(\lambda \mu)$ is a member of 1EXP with $T(x)=x/\mu$, $\Phi=1/\mu$, $a(\Phi)=\Phi$, $\theta=log(\lambda)$, $B_e{\theta}=exp(\eta)$, $g_e{(x)}=log(x)$. For any regions $R$ and $\bar R$, $m_R$ and $m_{\bar R}$ are independently Poisson distributed with a mean of $\{exp(\theta_R)b_R\}$ and $\{exp(\theta_{\bar R})b_{\bar R}\}$, respectively. The log-likelihood ratio is calculated by: $c(m_R log ({m_R\over {b_R}})+ (1-m_R)log({{1-m_R}\over {1-b_R} }))$~(c.f. \cite{DagMaxmize}). The closed-form formula for LRT generalizes to the 1EXP family of distributions~\cite{DagMaxmize}.
 
 \section{Motivations}
 \label{sec:mov}
@@ -134,7 +134,7 @@ For example, if we assume the counts $m_R$ in a region $R$ follow a Poisson dist
 
 In this section, we demonstrate two different parallel strategies for performing LRT statistics in a one-dimensional data grid by example. The strategies are (i) \emph{Overlapping Enumeration}, and (ii) \emph{Non-overlapping Enumeration}. The Overlapping Enumeration strategy has been implemented in~\cite{apweb}. In the example, we simulate the architectural environment of~\cite{apweb}, and illustrate its drawbacks. The non-overlapping Enumeration strategy, called Range Mapping scheme, will be presented in this paper to overcome the limitations of the Overlapping Enumeration strategy. For simplicity, we will describe the strategies on an abstract parallel machine not detailing its implementation on a concrete parallel platform.  The abstract parallel machine has a fixed number of parallel units (PU) whose memory for each PU is finite.
 
-EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT of each interval for the one-dimensional spatial data grid. To find the outlier, we enumerate all intervals that can be spawned over the one-dimensional data grid by performing LRT calculation explained in above section ~\ref{BG}. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$ and there are $n+1$ points in one dimensional grid.  There are ${\frac{5 \cdot (5+1)}{2}}=15$ intervals in total, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds. Figure ~\ref{example:subfig11} visualizes some intervals among above five data points.
+EXAMPLE: Assume we have a one-dimensional spatial data grid with  five data points, denoted as $\{O_0,O_1,O_2,O_3,O_4\}$. We would like to compute the LRT of each interval for the one-dimensional spatial data grid. To find the outlier, we enumerate all intervals that can be spawned over the one-dimensional data grid by performing LRT calculation explained in above section ~\ref{BG}. We express $l_{(i,j)}$ as an interval between point $O_i$ and $O_j$, where $ (0 \leq i <j \leq n)$ and there are $n+1$ points in one dimensional grid.  There are ${\frac{4 \cdot (4+1)}{2}}=10$ intervals in total, i.e., number of pairs $(i,j)$ for which $(0 \leq i < j \leq 4)$ holds. Figure ~\ref{example:subfig11} visualizes some intervals among above five data points.
 
 To illustrate how to compute LRT for each interval in this example, we assume each interval independently follows poisson distribution and the calculation of LRT is given in last part of section ~\ref{BG} of this paper. The formula is repeated here: $c(m_l log ({m_l\over {b_l}})+ (1-m_l)log({{1-m_l}\over {1-b_l}}))$, where $c$ is a constant factor and $l$ denotes interval ~(c.f. \cite{DagMaxmize}). Another detailed similar example in two-dimensional grid is provided in \cite{dke}.Therefore, to compute LRT value of an interval in the formula, $m_l$ (i.e. success count) and $b_l$ (i.e. population count) are required. Table ~\ref{tab:mb} provides sample value of $(m_l,b_l)$ for each independent interval. To compute the LRT of an interval, there are two different kind of calculations: (a) compute LRT of a single independent interval $l$, (b) compute LRT of an interval $l$, which is union of multiple non-overlapped intervals $l=l_1\cup l_2\cup...l_t$. For example, to obtain the LRT value of a single independent interval $l_{(0,0)}$, the computation is: $lrt_{(0,0)}=2\cdot log({2\over 10})+(1-2)log({{1-2}\over {1-10}})=-1.0$.  To obtain a larger interval interval  $l_{(0,1)}$ , which is the union of independent interval $l_{(0,0)}$ and $l_{(1,1)}$,  $(m_l, b_l)$ needs to be aggregated first. Since the data here follows poisson distribution, we know from above that $m_{l(0,1)}=m_{l(0,0)}+m_{l(1,1)}=2+2=4$ and $b_{l(0,1)}=b_{l(0,0)}+b_{l(1,1)}=10+10=20$ . Thus $lrt_{(0,1)}=4\cdot log({4\over 20})+(1-4)log({{1-4}\over {1-20}})=-0.9$. The LRT of each sub-intervals can be obtained using one of the two approaches. Since $m_l$ and $b_l$ need to be aggregated for calculating LRTs of some sub-intervals, dynamic pr-computation will be used in our following strategies to fully parallelize the computation.
 \begin{table}[t]
@@ -422,15 +422,11 @@ In the above, we know that the number of intervals is treated as the product of 
   \centering
   \subfloat[Grid (4,4)\label{maptable1}]{
     \centering
-     \begin{tabular}{|c|c|c|}
+     \begin{tabular}{|c|c|c|c|c|}
 	\hline
-    (0,0)$\rightarrow (0,0)$  &  $(0,1) \rightarrow (0,1)$&  $(0,2) \rightarrow (0,2)$ \\
+    (0,0)$\rightarrow (0,0)$  &  $(0,1) \rightarrow (0,1)$&  $(0,2) \rightarrow (0,2)$ &$(0,3)\rightarrow (0,3)$  &  $(0,4) \rightarrow (3,3)$\\
     \hline
-    (0,3)$\rightarrow (0,3)$  &  $(0,4) \rightarrow (3,3)$&  $(1,4) \rightarrow (2,2)$ \\
-    \hline
-    (1,3)$\rightarrow (2,3)$  &  $(1,0) \rightarrow (1,1)$&  $(1,1) \rightarrow (1,2)$ \\
-    \hline
-     (1,2)$\rightarrow (1,3)$  &    &  \\
+    (1,4) $\rightarrow (2,2)$ &$(1,3)\rightarrow (2,3)$  &  $(1,0) \rightarrow (1,1)$&  $(1,1) \rightarrow (1,2)$ & (1,2)$\rightarrow (1,3)$ \\
     \hline
 
 \end{tabular}
@@ -471,18 +467,59 @@ the total from actual measurement and baseline measurement $m_R,b_R$
 are obtained based on $\sum R$ without direct computation of the
 complement of $R (i.e. \bar R)$. After collecting the aggregated
 statistic values $(m_R,b_R)$, theorem~\ref{thm1} is applied to get the
-LRT value of region $R$. This property works for any dimensional data grid. 
+LRT value of region $R$. This property works for any dimensional data grid.
 
 \subsection{Pre-computation in one-dimension grid}
-From section \ref{sec:mov}, we already know inclusive/exclusive precomputation for calculating LRT of intervals can be done in one-dimension grid based on 1EXP property:
+From section \ref{sec:mov}, we already know inclusive/exclusive precomputation for calculating LRT of intervals can be done in one-dimension grid based on 1EXP property. Figure \ref{inex1dgen} shows $n-1$ intervals in one-dimensional grid. For any interval $I_{ij}$, it can be expressed as the overlapped interval between $I_{0,j}$ and $I_{i,n}$. Instead of computing its statistical counts $(m_I, r_I)$ from position $i$ to position $j$ directly, $(m_I, r_I)$ can be obtained in the following equation \ref{inex1dEqa}.
 
-\begin{equation}
+\begin{equation}\label{inex1dEqa}
 I_{ij} = A_j + B_i - G
 \end{equation},
 where interval $A_j$ counts all the events from the left most data-cell in
 the spatial grid to position $j$. The interval $B_i$ counts all the events from the right most
 data-cell to position $i$ and $G $ denotes counts of the whole spatial
 grid.
+
+\begin{figure}[h]
+\centering
+\subfloat[Pre-computation in 1d  ]{
+\includegraphics[width=0.5\linewidth]{figtkde/inex1dgen.png}
+\label{dy:subfig1}
+}\\
+~~\subfloat[Pre-computation of set A]{
+\includegraphics[width=0.22\linewidth]{figtkde/pre1db}
+\label{prec:subfig2}
+}
+~~\subfloat[Pre-computation of set B]{
+\includegraphics[width=0.22\linewidth]{figtkde/pre1da}
+\label{prec:subfig3}
+}
+\caption{ Inclusive Exclusive Pre-computation in 1d \label{inex1dgen}}
+\end{figure}
+
+\normalsize From Equation ~\ref{inex1dEqa}, we can see that a query
+time of $\bigo(1)$ can be achieved by pre-computing statistics of sets
+$A$, $B$ for all possible intervals in $G$. Since one of
+the corner of $A$, $B$ is fixed, we can pre-compute the
+cardinalities of these sets in arrays of size $\bigo(n)$. This approach is based on the Inclusive/Exclusive principle and dynamic programming accumulates the statistic of an interval $I$.
+
+To obtain the arrays for $A$, $B$, we employ dynamic programming. The dependency and statistic counts' propagation of data intervals for the array for $A$ and $B$ can be computed using the following recurrence relationship:
+
+\begin{eqnarray}
+|A_j|  &=  |A_{j-1}|  + |G_j|
+\end{eqnarray}
+\normalsize
+where $|G_j|$ represents the counts $(m_j,r_j)$ of the unit interval at position $(j-1,j)$ .The first element $|G_0|$ needs to be populated (initialized) so that
+all cardinalities of $A$ can be computed. The counts in the remaining array are accumulated through the dependency of the previous element in the array.\\
+Similarly, the computation of set $B$ is listed as the following:
+
+\begin{eqnarray}
+|B_i|  &=  |B_{i+1}|  + |G_i|
+\end{eqnarray}
+where $|G_i|$ represents the counts $(m_i,r_i)$ of the unit interval at position $(i,i+1)$ .The first element $|G_{n-1}|$ needs to be populated (initialized) so that
+all cardinalities of $B$ can be computed. The counts in the remaining array are accumulated through the dependency of the previous element in the array.\\
+
+
 \subsection{Pre-computation in two-dimension grid}
 \begin{figure}[h]
    \tikzset{oo grid/.style={help lines,color=blue!50!black!50,top color=white, opacity=0.5,bottom color=blue!50!black!20, very thick}}
@@ -515,7 +552,6 @@ grid.
 \end{figure}
 
 
-
 Consider Figure~\ref{fig:example}(a) showing a rectangular area $R$
 embedded in a grid $G$. Instead of counting the number of elements in
 $R$ directly, we express set $R$ as set intersections of two sets $A$
@@ -536,33 +572,19 @@ appendix):
 
 
 \begin{equation}
-\label{EQ:precomp}
+\label{EQ:precomp1}
 \begin{split}
 |R(i_1,j_1,i_2,j_2)|& = |A(i_2,j_2)| + |B(i_1,j_1)| + |X(i_1,j_2)|  + |Y(i_2,j_1)| - |G|
 \end{split}
 \end{equation}
-\normalsize From Equation ~\ref{EQ:precomp}, we can see that a query
+\normalsize From Equation ~\ref{EQ:precomp1}, we can see that a query
 time of $\bigo(1)$ can be achieved by pre-computing statistics of sets
 $A$, $B$, $X$, and $Y$ for all possible regions in $G$. Since one of
 the corner of $A$, $B$, $X$, and $Y$ is fixed, we can pre-compute the
 cardinalities of these sets in tables of size $\bigo(n^2)$.
 
 This pre-computation scheme has been implemented in~\cite{apweb} and
-we will give more details and related algorithms in the following.
-
-%BFS: We need to generalize to the multi-dimensional case here!
-\subsection{Pre-computation in Multi-dimension grid}
-Similarly, this  pre-computation strategy can be extended to multi-dimension grid.
-\begin{equation}
-\label{EQ:precomp}
-\begin{split}
-|R(i_1,j_1,...,g_1,...,i_k,j_k,...,g_k)|& = |A(i_k,j_k,...,g_k)| + |B(i_1,j_1,..,g_1)| + \sum |X(i_p,j_q,...,g_r)| - |G|
-\end{split}
-\end{equation}
-where $p,q,...,r$ are the intersect positions of region $R$  and  $1\leq p,q,r \leq k $. $(i_1,j_1,...g_1)$ and  $(i_k,j_k,...g_k)$ are corners of the $k$-dimensional grid. 
-
-\subsection{Implementation of Pre-computation in two-dimension grid}
-In the following, we show the detail of the precomputation scheme in two-dimensional grid. This novel and unique approach based on the Inclusive/Exclusive principle and
+we give more details and related algorithms in this section. This novel and unique approach based on the Inclusive/Exclusive principle and
 dynamic programming accumulates the statistic of a region $R$. We build a table in time $\bigo(n^2)$ and then compute the statistic of any region $R$ in $\bigo(1)$ time.
 
 To obtain a query time of $\bigo(1)$, we need to pre-compute sets $A$, $B$, $X$, and $Y$ for all possible regions in $G$. Since one of the corner is fixed we can pre-compute the cardinalities of these sets in tables of size $\bigo(n^2)$.
@@ -644,6 +666,44 @@ Output: accumulated counts $A(i,j)$\\
 \end{algorithmic}
 \end{algorithm}
 
+
+%BFS: We need to generalize to the multi-dimensional case here!
+\subsection{Pre-computation in Multi-dimension grid}
+The precomputation of counts in one dimension and two dimension grid can be directly extended to multi-dimensional grid.   Let's assume the dimension of the grid  $G$ is $k$ and each dimension of the grid is partitioned into $n$ equal cells. A hyper-region $R$ is embedded in this multi-dimensional grid $G$. Instead of counting the number of elements $( m_R, b_R)$  in $R$ directly,  the count set of $R$ is expressed as set intersections of $2^k$ sets denoted as $A_1$ ,$A_2$...,$A_{2^k}$.  Set $A_t$ $(1\leq i \leq {2^k})$ is a hyper-region that starts from one corner of the grid, ends at the other corner of $R$ by moving towards to the other end of grid to form a hyper-region .  For example,  the hyper-region  $A_1$ is formed by starting at the corner of $(0,0,...,0)$ and ending at the other corner of $A_1$ which moving towards to the corner $(n,n,..n)$ of  the grid $G$.  For more details,  each of the hyper-region, for instance, $A_1$ could be defined as counts between $(0,0..,0)$ to  $(i,j...,k)$ in arbitrary coordinate (corresponding to the corner point (1,1,1) in the hyper-cube).  $A_2$ could be defined as the counts between  $(0,0,...,n)$ to $(i,j,...,k)$ (corresponding to the corner point (0,0,1) in the hyper-cube).
+
+For a $(n,k)$ grid, there are $2^k$ corners.  By applying De Morgan's law and inclusion/exclusion principle, the query of counting the number of elements of region $R(i_1,j_1,..,k_1, i_2,j_2,..,k_2)$, where $(i_1,j_1,...,k_1)$ is one corner point of the grid and $(i_2,j_2,..,k_2)$ is the corner point of region $R$ can be expressed in the following:
+
+\begin{equation}
+\label{EQ:precompk}
+\begin{split}
+|R(i_1,j_1,...,k_1,i_2,j_2,...,k_2)|& = |A_1(i_2,j_2,...,k_2)| + |A_2(i_1,j_2,..k_1)|  +|A_3(i_2,j_1,..,k_1)|  + ...+  |A_{2^k}(i_1,j_1,...,k_1)| - |G|
+\end{split}
+\end{equation}
+\normalsize
+From Equation ~\ref{EQ:precompk}, we can see that a query time of $\bigo(1)$ can be achieved by pre-computing statistics of sets $A_1$, $A_2$,..., $A_{2^k}$ for all possible regions in $G$. 
+
+To obtain a query time of $\bigo(1)$, we need to pre-compute sets $A_t$ $(1\leq t \leq 2^k)$ for all possible regions in $G$. Since one of the corner is fixed we can pre-compute the cardinalities of these sets in tables of size $\bigo(n^k)$. The dependency and statistic counts' propagation of rows and columns for these tables are similar as the computation in one dimension and two dimension grid. For example, assuming $A_1$ is the hyper-region formed by starting at corner point $(0,0,...,0)$ and moving towards the corner point $(n,n,..,n)$, the table for $A_1$ can be computed using the following recurrence relationship:
+
+\begin{eqnarray}
+|A_1(i,j,..,k)|  &= |A_1(i,j-1,...,k)| + |A_1(i-1,j,..,k)| + ... +|A_1(i,j,...,k-1)| - |A_1(i-1,j-1,...,k-1)|  + |G(i,j)|
+\end{eqnarray}
+\normalsize
+where $|G(i,j)|$ counts the element in the cell location $(i,j)$. The first element and the first array along each coordinate need to be populated (initialized) so that all cardinalities of $A_1$ can be computed. The counts in the remaining coordinate are accumulated through the dependency of the previous array for each coordinate.
+
+Similarly, the computation of other sets are listed as the following. For example, $A_2$ is formed by starting at corner point $(n,n,...,n)$ and moving towards the corner point $(0,0,...,0)$. 
+
+\begin{eqnarray}
+|A_2(i,j,...,k)|  &= |A_2(i+1,j,..,k)| + |A_2(i,j+1,...,k)| + ... +|A_2(i,j,...,k+1)| - |A_2(i+1,j+1,...,k+1)| + |G(i,j)|
+\end{eqnarray}
+
+\normalsize
+Generally, depending on the coordinate direction to form a hyper-region, the previous array coordinate is obtained by subtracting 1 if the direction is towards $n$ of the corner point of grid such as $(0,...,n..,0)$. Otherwise the previous array coordinate is obtained by adding 1 if the direction is towards $0$ of the corner point of grid such as  $(0,...,n..,0)$. For example, if $A_t$ is formed by starting at corner point $(0,...,n)$ and moving towards the corner point $(n,...,0)$ and we assume first coordinate and last coordinate starting from $(0,n)$ towards $(n,0)$, the computation is shown as: 
+
+\begin{eqnarray}
+|A_t(i,...,k)|  &= & |A_t(i,...,k-1)| + ...+ |A_t(i+1,...,k)|  - |A_t(i+1,...,k-1)| + |G(i,j)|
+\end{eqnarray}
+\normalsize
+By applying Inclusive/Exclusive principle, the pre-computation strategy makes the computation complexity in multi-dimensional grid can be reduced from $O(n^{k^2})$ to $O(1)$ if we create above $n^k$ tables on CPU and execute LRT computation on parallel architecture.
 
 \section {Range Mapping Scheme} \label{RMS}
 In this section, we study how parallelism helps to enumerate all of the rectangular regions (R) in a spatial grid (G). We will explain this scheme in one-dimensional, two-dimensional, and $k$-dimensional data-grids.
